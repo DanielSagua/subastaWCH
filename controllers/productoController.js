@@ -205,7 +205,11 @@ const productoController = {
 
       const productoResult = await pool.request()
         .input('id_producto', sql.Int, id_producto)
-        .query('SELECT fecha_publicacion_producto FROM Productos WHERE id_producto = @id_producto');
+        .query(`
+    SELECT fecha_publicacion_producto, precio_producto 
+    FROM Productos 
+    WHERE id_producto = @id_producto
+  `);
       const producto = productoResult.recordset[0];
       if (!producto) return res.status(404).json({ message: 'Producto no encontrado' });
 
@@ -226,6 +230,9 @@ const productoController = {
   `);
 
       const ofertaMaxima = anteriorResult.recordset[0]?.monto_oferta || 0;
+      if (ofertaMaxima === 0 && monto <= producto.precio_producto) {
+        return res.status(400).json({ message: 'La oferta inicial debe superar el precio base del producto.' });
+      }
 
       const anteriorUsuario = anteriorResult.recordset[0];
 
