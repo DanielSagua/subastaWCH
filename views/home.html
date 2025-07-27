@@ -10,6 +10,8 @@
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container">
       <a class="navbar-brand" href="home.html">Subastas WCH</a>
+      <span id="usuarioActivo" class="navbar-text text-light"></span>
+
       <div class="ms-auto">
         <a href="/logout" class="btn btn-outline-light">Cerrar sesión</a>
       </div>
@@ -26,7 +28,8 @@
   <script>
     async function cargarProductos() {
       try {
-        const res = await fetch('/productos');
+        const res = await fetch('/productos/activos');
+
         const productos = await res.json();
 
         const contenedor = document.getElementById('contenedorProductos');
@@ -56,6 +59,19 @@
     }
 
     cargarProductos();
+
+     async function cargarUsuarioActivo() {
+    try {
+      const res = await fetch('/usuario/perfil');
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      document.getElementById('usuarioActivo').textContent = `Bienvenido, ${data.nombre}`;
+    } catch {
+      document.getElementById('usuarioActivo').textContent = '';
+    }
+  }
+
+  cargarUsuarioActivo();
   </script>
 </body>
 </html>

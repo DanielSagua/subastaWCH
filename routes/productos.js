@@ -5,7 +5,12 @@ const { upload } = require('../controllers/productoController');
 const { isAdmin, isAuthenticated } = require('../middlewares/authMiddleware');
 
 // Rutas públicas / protegidas para usuarios
-router.get('/productos', productoController.listarProductos);
+// Solo productos activos (para home)
+router.get('/productos/activos', productoController.listarActivos);
+
+// Todos los productos (para gestión)
+router.get('/productos', productoController.listarTodos);
+
 router.get('/producto/:id', productoController.verProducto);
 router.post('/producto/:id_producto/ofertar', isAuthenticated, productoController.ofertar);
 

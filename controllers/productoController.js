@@ -27,20 +27,56 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 const productoController = {
-  listarProductos: async (req, res) => {
+  // listarProductos: async (req, res) => {
+  //   try {
+  //     const pool = await db;
+  //     const result = await pool.request().query(`
+  //       SELECT 
+  //         p.*, 
+  //         (SELECT MAX(monto_oferta) FROM Ofertas WHERE id_producto = p.id_producto) AS oferta_maxima,
+  //         u.nombre_usuario AS nombre_ganador
+  //       FROM Productos p
+  //       LEFT JOIN Usuarios u ON p.ganador_id = u.id_usuario
+  //       WHERE p.finalizada = 0
+  //     `);
+  //     res.json(result.recordset);
+  //   } catch (error) {
+  //     console.error('Error al listar productos:', error);
+  //     res.status(500).json({ message: 'Error al obtener productos' });
+  //   }
+  // },
+
+  listarActivos: async (req, res) => {
     try {
       const pool = await db;
       const result = await pool.request().query(`
-        SELECT 
-          p.*, 
-          (SELECT MAX(monto_oferta) FROM Ofertas WHERE id_producto = p.id_producto) AS oferta_maxima,
-          u.nombre_usuario AS nombre_ganador
-        FROM Productos p
-        LEFT JOIN Usuarios u ON p.ganador_id = u.id_usuario
-      `);
+      SELECT 
+        p.*, 
+        (SELECT MAX(monto_oferta) FROM Ofertas WHERE id_producto = p.id_producto) AS oferta_maxima
+      FROM Productos p
+      WHERE p.finalizada = 0
+    `);
       res.json(result.recordset);
     } catch (error) {
-      console.error('Error al listar productos:', error);
+      console.error('Error al listar productos activos:', error);
+      res.status(500).json({ message: 'Error al obtener productos activos' });
+    }
+  },
+
+  listarTodos: async (req, res) => {
+    try {
+      const pool = await db;
+      const result = await pool.request().query(`
+      SELECT 
+        p.*, 
+        (SELECT MAX(monto_oferta) FROM Ofertas WHERE id_producto = p.id_producto) AS oferta_maxima,
+        u.nombre_usuario AS nombre_ganador
+      FROM Productos p
+      LEFT JOIN Usuarios u ON p.ganador_id = u.id_usuario
+    `);
+      res.json(result.recordset);
+    } catch (error) {
+      console.error('Error al listar todos los productos:', error);
       res.status(500).json({ message: 'Error al obtener productos' });
     }
   },
@@ -75,20 +111,7 @@ const productoController = {
           VALUES (@nombre, @descripcion, @precio, @imagen)
         `);
 
-      // const usuariosResult = await pool.request().query(`
-      //   SELECT correo, nombre_usuario FROM Usuarios WHERE estado = 1
-      // `);
-      // for (const usuario of usuariosResult.recordset) {
-      //   await transporter.sendMail({
-      //     from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
-      //     to: usuario.correo,
-      //     subject: '🆕 Nuevo producto en subasta',
-      //     html: `
-      //       <p>Hola ${usuario.nombre_usuario},</p>
-      //       <p>Se ha publicado un nuevo producto: <strong>${nombre}</strong> ($${precio})</p>
-      //     `
-      //   });
-      // }
+
 
       if (process.env.AVISO_PRODUCTO_NUEVO === 'true') {
         const usuariosResult = await pool.request().query(`
