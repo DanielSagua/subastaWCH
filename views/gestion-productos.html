@@ -121,6 +121,25 @@
       }
     }
 
+    async function eliminarProducto(id) {
+    if (!confirm('¿Estás seguro de que quieres eliminar este producto?')) return;
+
+    try {
+      const res = await fetch(`/productos/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+
+      if (res.ok) {
+        alert('Producto eliminado correctamente');
+        location.reload();
+      } else {
+        alert(data.message || 'Error al eliminar el producto');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error de conexión con el servidor');
+    }
+  }
+
 
     cargarArticulos();
   </script>

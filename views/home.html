@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SubastasWCH - Inicio</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
+
 <body class="bg-light">
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container">
@@ -13,6 +15,7 @@
       <span id="usuarioActivo" class="navbar-text text-light"></span>
 
       <div class="ms-auto">
+        <a href="/admin.html" id="btnAdmin" class="btn btn-warning d-none">Volver a panel admin</a>
         <a href="/logout" class="btn btn-outline-light">Cerrar sesión</a>
       </div>
     </div>
@@ -43,7 +46,12 @@
               <div class="card-body">
                 <img src="/uploads/${p.imagen}" class="img-fluid mb-3" alt="Producto" />
                 <h5 class="card-title text-primary">${p.nombre_producto}</h5>
-                <p class="card-text">${p.descripcion_producto || ''}</p>
+                <p class="card-text">${(p.descripcion_producto || '')
+              .split(' ')
+              .slice(0, 30)
+              .join(' ')
+            + ((p.descripcion_producto?.split(' ').length > 30) ? '…' : '')
+            }</p>
                 <p><strong>Precio base:</strong> $${p.precio_producto.toLocaleString()}</p>
                 <p><strong>Oferta máxima:</strong> $${(p.oferta_maxima || 0).toLocaleString()}</p>
                 <a href="/producto.html?id=${p.id_producto}" class="btn btn-sm btn-outline-primary">Ver más</a>
@@ -60,18 +68,35 @@
 
     cargarProductos();
 
-     async function cargarUsuarioActivo() {
-    try {
-      const res = await fetch('/usuario/perfil');
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      document.getElementById('usuarioActivo').textContent = `Bienvenido, ${data.nombre}`;
-    } catch {
-      document.getElementById('usuarioActivo').textContent = '';
+    async function cargarUsuarioActivo() {
+      try {
+        const res = await fetch('/usuario/perfil');
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        document.getElementById('usuarioActivo').textContent = `Bienvenido, ${data.nombre}`;
+      } catch {
+        document.getElementById('usuarioActivo').textContent = '';
+      }
     }
-  }
 
-  cargarUsuarioActivo();
+    cargarUsuarioActivo();
+
+    async function mostrarBotonAdmin() {
+      try {
+        const res = await fetch('/usuario/perfil');
+        const data = await res.json();
+
+        if (data.tipo_usuario === 'admin') {
+          document.getElementById('btnAdmin').classList.remove('d-none');
+        }
+      } catch {
+        // No mostrar nada si no está logueado
+      }
+    }
+
+    mostrarBotonAdmin();
+
   </script>
 </body>
+
 </html>

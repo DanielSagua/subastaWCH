@@ -111,6 +111,7 @@
                     msg.textContent = 'Oferta registrada con éxito.';
                     msg.classList.remove('text-danger');
                     msg.classList.add('text-success');
+                    document.getElementById('monto').value = '';
                     await cargarOfertaMaxima();
                 } else {
                     const msg = document.getElementById('mensaje');
