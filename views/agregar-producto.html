@@ -60,32 +60,32 @@
   </div>
 
   <script>
-    document.getElementById('formAgregar').addEventListener('submit', async function (e) {
-      e.preventDefault();
-      const nombre = document.getElementById('nombre').value;
-      const descripcion = document.getElementById('descripcion').value;
-      const precio = parseFloat(document.getElementById('precio').value);
+  document.getElementById('formAgregar').addEventListener('submit', async function (e) {
+    e.preventDefault();
 
-      try {
-        const res = await fetch('/productos', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ nombre, descripcion, precio })
-        });
+    const form = document.getElementById('formAgregar');
+    const formData = new FormData(form); // ✅ Esto incluye archivos
 
-        const data = await res.json();
-        if (res.ok) {
-          document.getElementById('mensaje').textContent = 'Producto agregado exitosamente.';
-          document.getElementById('formAgregar').reset();
-        } else {
-          alert(data.message || 'Error al agregar producto');
-        }
-      } catch (err) {
-        console.error(err);
-        alert('Error al conectar con el servidor');
+    try {
+      const res = await fetch('/productos', {
+        method: 'POST',
+        body: formData // ✅ No establezcas Content-Type, el navegador lo hace por ti
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        document.getElementById('mensaje').textContent = 'Producto agregado exitosamente.';
+        form.reset();
+      } else {
+        alert(data.message || 'Error al agregar producto');
       }
-    });
-  </script>
+    } catch (err) {
+      console.error(err);
+      alert('Error al conectar con el servidor');
+    }
+  });
+</script>
+
 </body>
 
 </html>

@@ -97,6 +97,8 @@ const productoController = {
 
   crearProducto: async (req, res) => {
     const { nombre, descripcion, precio } = req.body;
+    console.log('Archivo recibido:', req.file);
+
     const imagen = req.file?.filename || 'test.webp';
 
     try {
