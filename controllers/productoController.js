@@ -75,19 +75,37 @@ const productoController = {
           VALUES (@nombre, @descripcion, @precio, @imagen)
         `);
 
-      const usuariosResult = await pool.request().query(`
-        SELECT correo, nombre_usuario FROM Usuarios WHERE estado = 1
-      `);
-      for (const usuario of usuariosResult.recordset) {
-        await transporter.sendMail({
-          from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
-          to: usuario.correo,
-          subject: '🆕 Nuevo producto en subasta',
-          html: `
-            <p>Hola ${usuario.nombre_usuario},</p>
-            <p>Se ha publicado un nuevo producto: <strong>${nombre}</strong> ($${precio})</p>
-          `
-        });
+      // const usuariosResult = await pool.request().query(`
+      //   SELECT correo, nombre_usuario FROM Usuarios WHERE estado = 1
+      // `);
+      // for (const usuario of usuariosResult.recordset) {
+      //   await transporter.sendMail({
+      //     from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
+      //     to: usuario.correo,
+      //     subject: '🆕 Nuevo producto en subasta',
+      //     html: `
+      //       <p>Hola ${usuario.nombre_usuario},</p>
+      //       <p>Se ha publicado un nuevo producto: <strong>${nombre}</strong> ($${precio})</p>
+      //     `
+      //   });
+      // }
+
+      if (process.env.AVISO_PRODUCTO_NUEVO === 'true') {
+        const usuariosResult = await pool.request().query(`
+    SELECT correo, nombre_usuario FROM Usuarios WHERE estado = 1
+  `);
+
+        for (const usuario of usuariosResult.recordset) {
+          await transporter.sendMail({
+            from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
+            to: usuario.correo,
+            subject: '🆕 Nuevo producto en subasta',
+            html: `
+        <p>Hola ${usuario.nombre_usuario},</p>
+        <p>Se ha publicado un nuevo producto. ¡Revísalo en el sistema!</p>
+      `
+          });
+        }
       }
 
       res.json({ message: 'Producto creado correctamente' });
