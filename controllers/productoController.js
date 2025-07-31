@@ -5,6 +5,8 @@ const path = require('path');
 const fs = require('fs');
 const nodemailer = require('nodemailer');
 require('dotenv').config();
+const ENVIAR_CORREOS = process.env.ENVIAR_CORREOS === 'true';
+
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -27,24 +29,6 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 const productoController = {
-  // listarProductos: async (req, res) => {
-  //   try {
-  //     const pool = await db;
-  //     const result = await pool.request().query(`
-  //       SELECT 
-  //         p.*, 
-  //         (SELECT MAX(monto_oferta) FROM Ofertas WHERE id_producto = p.id_producto) AS oferta_maxima,
-  //         u.nombre_usuario AS nombre_ganador
-  //       FROM Productos p
-  //       LEFT JOIN Usuarios u ON p.ganador_id = u.id_usuario
-  //       WHERE p.finalizada = 0
-  //     `);
-  //     res.json(result.recordset);
-  //   } catch (error) {
-  //     console.error('Error al listar productos:', error);
-  //     res.status(500).json({ message: 'Error al obtener productos' });
-  //   }
-  // },
 
   listarActivos: async (req, res) => {
     try {
@@ -121,15 +105,17 @@ const productoController = {
   `);
 
         for (const usuario of usuariosResult.recordset) {
-          await transporter.sendMail({
-            from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
-            to: usuario.correo,
-            subject: '🆕 Nuevo producto en subasta',
-            html: `
+          if (ENVIAR_CORREOS) {
+            await transporter.sendMail({
+              from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
+              to: usuario.correo,
+              subject: '🆕 Nuevo producto en subasta',
+              html: `
         <p>Hola ${usuario.nombre_usuario},</p>
         <p>Se ha publicado un nuevo producto. ¡Revísalo en el sistema!</p>
       `
-          });
+            });
+          }
         }
       }
 
@@ -209,12 +195,14 @@ const productoController = {
         `);
 
       for (const usuario of ofertantes.recordset) {
-        await transporter.sendMail({
-          from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
-          to: usuario.correo,
-          subject: '❌ Subasta cancelada',
-          html: `<p>Hola ${usuario.nombre_usuario},<br>La subasta del producto ID ${id} fue cancelada.</p>`
-        });
+        if (ENVIAR_CORREOS) {
+          await transporter.sendMail({
+            from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
+            to: usuario.correo,
+            subject: '❌ Subasta cancelada',
+            html: `<p>Hola ${usuario.nombre_usuario},<br>La subasta del producto ID ${id} fue cancelada.</p>`
+          });
+        }
       }
 
       await pool.request()
@@ -295,15 +283,18 @@ const productoController = {
       const usuario = userResult.recordset[0];
 
       // Enviar correo de confirmación al ofertante actual
+if (ENVIAR_CORREOS) {
       await transporter.sendMail({
         from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
         to: usuario.correo,
         subject: '📝 Oferta registrada',
         html: `<p>Hola ${usuario.nombre_usuario}, tu oferta de $${monto} fue registrada en el producto ID ${id_producto}.</p>`
       });
+    }
 
       // ✅ Enviar correo al usuario anterior solo si es distinto
       if (anteriorUsuario && anteriorUsuario.id_usuario !== id_usuario) {
+        if (ENVIAR_CORREOS) {
         await transporter.sendMail({
           from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
           to: anteriorUsuario.correo,
@@ -315,15 +306,13 @@ const productoController = {
         `
         });
       }
-
+    }
       res.json({ success: true, message: 'Oferta registrada' });
     } catch (error) {
       console.error('Error al ofertar:', error);
       if (!res.headersSent) res.status(500).json({ message: 'Error al ofertar' });
     }
   },
-
-
 
   finalizarSubasta: async (req, res) => {
     const { id } = req.params;
@@ -360,12 +349,14 @@ const productoController = {
         const usuario = await pool.request()
           .input('id_usuario', sql.Int, ganador)
           .query('SELECT nombre_usuario, correo FROM Usuarios WHERE id_usuario = @id_usuario');
-        await transporter.sendMail({
+        if (ENVIAR_CORREOS) {
+          await transporter.sendMail({
           from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
           to: usuario.recordset[0].correo,
           subject: '🎉 Has ganado la subasta',
           html: `<p>Hola ${usuario.recordset[0].nombre_usuario}, has ganado la subasta del producto ID ${id}.</p>`
         });
+      }
       }
 
       const ofertantes = await pool.request()
@@ -378,6 +369,7 @@ const productoController = {
         `);
 
       for (const usuario of ofertantes.recordset) {
+if (ENVIAR_CORREOS) {
         await transporter.sendMail({
           from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
           to: usuario.correo,
@@ -385,14 +377,16 @@ const productoController = {
           html: `<p>Hola ${usuario.nombre_usuario}, la subasta del producto ID ${id} ha finalizado. Gracias por participar.</p>`
         });
       }
+      }
 
+      if (ENVIAR_CORREOS) {
       await transporter.sendMail({
         from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
         to: 'admin@empresa.cl',
         subject: '📬 Subasta finalizada',
         html: `<p>La subasta ID ${id} ha finalizado.${ganador ? ` Ganador ID: ${ganador}` : ' Sin ganador.'}</p>`
       });
-
+    }
       res.json({ message: 'Subasta finalizada' });
     } catch (error) {
       console.error('Error al finalizar subasta:', error);

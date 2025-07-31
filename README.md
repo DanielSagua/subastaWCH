@@ -76,7 +76,7 @@ subastas-app/
 ### 📄 Ejemplo `.env`:
 
 ```env
-DB_USER=sa
+DB_USER=Usuario de BD
 DB_PASSWORD=tu_password
 DB_SERVER=localhost
 DB_DATABASE=SubastasDB
