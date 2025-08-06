@@ -44,7 +44,8 @@
           card.innerHTML = `
             <div class="card h-100 shadow">
               <div class="card-body">
-                <img src="/uploads/${p.imagen}" class="img-fluid mb-3" alt="Producto" />
+<img src="/uploads/${p.imagen}" class="img-fluid mb-3 img-cuadrada" alt="Producto" />
+
                 <h5 class="card-title text-primary">${p.nombre_producto}</h5>
                 <p class="card-text">${(p.descripcion_producto || '')
               .split(' ')

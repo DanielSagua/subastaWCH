@@ -39,6 +39,7 @@ const productoController = {
         (SELECT MAX(monto_oferta) FROM Ofertas WHERE id_producto = p.id_producto) AS oferta_maxima
       FROM Productos p
       WHERE p.finalizada = 0
+      ORDER BY p.fecha_publicacion_producto DESC
     `);
       res.json(result.recordset);
     } catch (error) {
