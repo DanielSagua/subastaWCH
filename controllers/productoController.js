@@ -84,19 +84,50 @@ const productoController = {
     const { nombre, descripcion, precio } = req.body;
     console.log('Archivo recibido:', req.file);
 
-    const imagen = req.file?.filename || 'test.webp';
+    // const imagen = req.file?.filename || 'test.webp';
+
+    const archivos = req.files || [];
+    const imagenes = archivos.map(f => f.filename);
+
+    // Asegura que al menos la imagen principal esté definida
+    const imagen = imagenes[0] || 'test.webp';
+    const imagen1 = imagenes[1] || null;
+    const imagen2 = imagenes[2] || null;
+    const imagen3 = imagenes[3] || null;
+    const imagen4 = imagenes[4] || null;
+
 
     try {
       const pool = await db;
+      // await pool.request()
+      //   .input('nombre', sql.NVarChar, nombre)
+      //   .input('descripcion', sql.NVarChar, descripcion)
+      //   .input('precio', sql.Decimal(10, 2), precio)
+      //   .input('imagen', sql.NVarChar, imagen)
+      //   .query(`
+      //     INSERT INTO Productos (nombre_producto, descripcion_producto, precio_producto, imagen)
+      //     VALUES (@nombre, @descripcion, @precio, @imagen)
+      //   `);
+
       await pool.request()
         .input('nombre', sql.NVarChar, nombre)
         .input('descripcion', sql.NVarChar, descripcion)
         .input('precio', sql.Decimal(10, 2), precio)
         .input('imagen', sql.NVarChar, imagen)
+        .input('imagen1', sql.NVarChar, imagen1)
+        .input('imagen2', sql.NVarChar, imagen2)
+        .input('imagen3', sql.NVarChar, imagen3)
+        .input('imagen4', sql.NVarChar, imagen4)
         .query(`
-          INSERT INTO Productos (nombre_producto, descripcion_producto, precio_producto, imagen)
-          VALUES (@nombre, @descripcion, @precio, @imagen)
-        `);
+    INSERT INTO Productos (
+      nombre_producto, descripcion_producto, precio_producto,
+      imagen, imagen1, imagen2, imagen3, imagen4
+    ) VALUES (
+      @nombre, @descripcion, @precio,
+      @imagen, @imagen1, @imagen2, @imagen3, @imagen4
+    )
+  `);
+
 
 
 
@@ -245,7 +276,7 @@ const productoController = {
       const producto = productoResult.recordset[0];
       if (!producto) return res.status(404).json({ message: 'Producto no encontrado' });
 
-      const fechaFin = new Date(producto.fecha_publicacion_producto).getTime() + 86400000;
+      const fechaFin = new Date(producto.fecha_publicacion_producto).getTime() + 172800000;
       if (Date.now() > fechaFin) {
         return res.status(400).json({ message: 'La subasta ha finalizado' });
       }
@@ -284,30 +315,30 @@ const productoController = {
       const usuario = userResult.recordset[0];
 
       // Enviar correo de confirmación al ofertante actual
-if (ENVIAR_CORREOS) {
-      await transporter.sendMail({
-        from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
-        to: usuario.correo,
-        subject: '📝 Oferta registrada',
-        html: `<p>Hola ${usuario.nombre_usuario}, tu oferta de $${monto} fue registrada en el producto ID ${id_producto}.</p>`
-      });
-    }
+      if (ENVIAR_CORREOS) {
+        await transporter.sendMail({
+          from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
+          to: usuario.correo,
+          subject: '📝 Oferta registrada',
+          html: `<p>Hola ${usuario.nombre_usuario}, tu oferta de $${monto} fue registrada en el producto ID ${id_producto}.</p>`
+        });
+      }
 
       // ✅ Enviar correo al usuario anterior solo si es distinto
       if (anteriorUsuario && anteriorUsuario.id_usuario !== id_usuario) {
         if (ENVIAR_CORREOS) {
-        await transporter.sendMail({
-          from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
-          to: anteriorUsuario.correo,
-          subject: '📉 Has sido superado en una subasta',
-          html: `
+          await transporter.sendMail({
+            from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
+            to: anteriorUsuario.correo,
+            subject: '📉 Has sido superado en una subasta',
+            html: `
           <p>Hola ${anteriorUsuario.nombre_usuario},</p>
           <p>Tu oferta ya no es la más alta en el producto ID ${id_producto}.</p>
           <p>¡Haz tu mejor oferta para recuperar el liderazgo!</p>
         `
-        });
+          });
+        }
       }
-    }
       res.json({ success: true, message: 'Oferta registrada' });
     } catch (error) {
       console.error('Error al ofertar:', error);
@@ -352,12 +383,12 @@ if (ENVIAR_CORREOS) {
           .query('SELECT nombre_usuario, correo FROM Usuarios WHERE id_usuario = @id_usuario');
         if (ENVIAR_CORREOS) {
           await transporter.sendMail({
-          from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
-          to: usuario.recordset[0].correo,
-          subject: '🎉 Has ganado la subasta',
-          html: `<p>Hola ${usuario.recordset[0].nombre_usuario}, has ganado la subasta del producto ID ${id}.</p>`
-        });
-      }
+            from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
+            to: usuario.recordset[0].correo,
+            subject: '🎉 Has ganado la subasta',
+            html: `<p>Hola ${usuario.recordset[0].nombre_usuario}, has ganado la subasta del producto ID ${id}.</p>`
+          });
+        }
       }
 
       const ofertantes = await pool.request()
@@ -370,24 +401,24 @@ if (ENVIAR_CORREOS) {
         `);
 
       for (const usuario of ofertantes.recordset) {
-if (ENVIAR_CORREOS) {
-        await transporter.sendMail({
-          from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
-          to: usuario.correo,
-          subject: '📢 Subasta finalizada',
-          html: `<p>Hola ${usuario.nombre_usuario}, la subasta del producto ID ${id} ha finalizado. Gracias por participar.</p>`
-        });
-      }
+        if (ENVIAR_CORREOS) {
+          await transporter.sendMail({
+            from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
+            to: usuario.correo,
+            subject: '📢 Subasta finalizada',
+            html: `<p>Hola ${usuario.nombre_usuario}, la subasta del producto ID ${id} ha finalizado. Gracias por participar.</p>`
+          });
+        }
       }
 
       if (ENVIAR_CORREOS) {
-      await transporter.sendMail({
-        from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
-        to: 'admin@empresa.cl',
-        subject: '📬 Subasta finalizada',
-        html: `<p>La subasta ID ${id} ha finalizado.${ganador ? ` Ganador ID: ${ganador}` : ' Sin ganador.'}</p>`
-      });
-    }
+        await transporter.sendMail({
+          from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
+          to: 'admin@empresa.cl',
+          subject: '📬 Subasta finalizada',
+          html: `<p>La subasta ID ${id} ha finalizado.${ganador ? ` Ganador ID: ${ganador}` : ' Sin ganador.'}</p>`
+        });
+      }
       res.json({ message: 'Subasta finalizada' });
     } catch (error) {
       console.error('Error al finalizar subasta:', error);

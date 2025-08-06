@@ -15,10 +15,10 @@ router.get('/producto/:id', productoController.verProducto);
 router.post('/producto/:id_producto/ofertar', isAuthenticated, productoController.ofertar);
 
 // Rutas para administradores
-router.post('/productos', isAdmin, upload.single('imagen'), productoController.crearProducto);
-router.post('/productos/:id', isAdmin, upload.single('imagen'), productoController.editarProducto);
+router.post('/productos', isAdmin, upload.array('imagenes', 5), productoController.crearProducto);
+router.post('/productos/:id', isAdmin, upload.array('imagenes', 5), productoController.editarProducto);
 router.delete('/productos/:id', isAdmin, productoController.eliminarProducto);
-router.post('/productos/:id', isAdmin, upload.single('imagen'), productoController.editarProducto);
+router.post('/productos/:id', isAdmin, upload.array('imagenes', 5), productoController.editarProducto);
 router.post('/productos/:id/finalizar', isAdmin, productoController.finalizarSubasta);
 
 
