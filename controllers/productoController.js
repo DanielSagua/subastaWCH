@@ -30,10 +30,38 @@ const upload = multer({ storage });
 
 const productoController = {
 
+  // listarActivos: async (req, res) => {
+  //   try {
+  //     const pool = await db;
+  //     const result = await pool.request().query(`
+  //     SELECT 
+  //       p.*, 
+  //       (SELECT MAX(monto_oferta) FROM Ofertas WHERE id_producto = p.id_producto) AS oferta_maxima
+  //     FROM Productos p
+  //     WHERE p.finalizada = 0
+  //     ORDER BY p.fecha_publicacion_producto DESC
+  //   `);
+  //     res.json(result.recordset);
+  //   } catch (error) {
+  //     console.error('Error al listar productos activos:', error);
+  //     res.status(500).json({ message: 'Error al obtener productos activos' });
+  //   }
+  // },
+
   listarActivos: async (req, res) => {
-    try {
-      const pool = await db;
-      const result = await pool.request().query(`
+  try {
+    const pool = await db;
+
+    // ✅ Marcar como finalizados los productos que cumplieron 48 horas
+    await pool.request().query(`
+      UPDATE Productos
+      SET finalizada = 1
+      WHERE finalizada = 0
+        AND DATEADD(HOUR, 48, fecha_publicacion_producto) <= GETDATE()
+    `);
+
+    // Luego listar los productos activos actualizados
+    const result = await pool.request().query(`
       SELECT 
         p.*, 
         (SELECT MAX(monto_oferta) FROM Ofertas WHERE id_producto = p.id_producto) AS oferta_maxima
@@ -41,12 +69,14 @@ const productoController = {
       WHERE p.finalizada = 0
       ORDER BY p.fecha_publicacion_producto DESC
     `);
-      res.json(result.recordset);
-    } catch (error) {
-      console.error('Error al listar productos activos:', error);
-      res.status(500).json({ message: 'Error al obtener productos activos' });
-    }
-  },
+
+    res.json(result.recordset);
+  } catch (error) {
+    console.error('Error al listar productos activos:', error);
+    res.status(500).json({ message: 'Error al obtener productos activos' });
+  }
+},
+
 
   listarTodos: async (req, res) => {
     try {
