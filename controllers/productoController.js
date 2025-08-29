@@ -49,19 +49,19 @@ const productoController = {
   // },
 
   listarActivos: async (req, res) => {
-  try {
-    const pool = await db;
+    try {
+      const pool = await db;
 
-    // ✅ Marcar como finalizados los productos que cumplieron 48 horas
-    await pool.request().query(`
+      // ✅ Marcar como finalizados los productos que cumplieron 48 horas
+      await pool.request().query(`
       UPDATE Productos
       SET finalizada = 1
       WHERE finalizada = 0
         AND DATEADD(HOUR, 48, fecha_publicacion_producto) <= GETDATE()
     `);
 
-    // Luego listar los productos activos actualizados
-    const result = await pool.request().query(`
+      // Luego listar los productos activos actualizados
+      const result = await pool.request().query(`
       SELECT 
         p.*, 
         (SELECT MAX(monto_oferta) FROM Ofertas WHERE id_producto = p.id_producto) AS oferta_maxima
@@ -70,12 +70,12 @@ const productoController = {
       ORDER BY p.fecha_publicacion_producto DESC
     `);
 
-    res.json(result.recordset);
-  } catch (error) {
-    console.error('Error al listar productos activos:', error);
-    res.status(500).json({ message: 'Error al obtener productos activos' });
-  }
-},
+      res.json(result.recordset);
+    } catch (error) {
+      console.error('Error al listar productos activos:', error);
+      res.status(500).json({ message: 'Error al obtener productos activos' });
+    }
+  },
 
 
   listarTodos: async (req, res) => {
@@ -129,16 +129,6 @@ const productoController = {
 
     try {
       const pool = await db;
-      // await pool.request()
-      //   .input('nombre', sql.NVarChar, nombre)
-      //   .input('descripcion', sql.NVarChar, descripcion)
-      //   .input('precio', sql.Decimal(10, 2), precio)
-      //   .input('imagen', sql.NVarChar, imagen)
-      //   .query(`
-      //     INSERT INTO Productos (nombre_producto, descripcion_producto, precio_producto, imagen)
-      //     VALUES (@nombre, @descripcion, @precio, @imagen)
-      //   `);
-
       await pool.request()
         .input('nombre', sql.NVarChar, nombre)
         .input('descripcion', sql.NVarChar, descripcion)
@@ -148,14 +138,11 @@ const productoController = {
         .input('imagen2', sql.NVarChar, imagen2)
         .input('imagen3', sql.NVarChar, imagen3)
         .input('imagen4', sql.NVarChar, imagen4)
+        .input('imagen_destacada', sql.NVarChar, req.body.imagen_destacada || imagen)
         .query(`
-    INSERT INTO Productos (
-      nombre_producto, descripcion_producto, precio_producto,
-      imagen, imagen1, imagen2, imagen3, imagen4
-    ) VALUES (
-      @nombre, @descripcion, @precio,
-      @imagen, @imagen1, @imagen2, @imagen3, @imagen4
-    )
+INSERT INTO Productos (nombre_producto, descripcion_producto, precio_producto, imagen, imagen1, imagen2, imagen3, imagen4, imagen_destacada)
+VALUES (@nombre, @descripcion, @precio, @imagen, @imagen1, @imagen2, @imagen3, @imagen4, @imagen_destacada)
+
   `);
 
 
@@ -209,25 +196,28 @@ const productoController = {
         .input('id', sql.Int, id)
         .input('nombre', sql.NVarChar, nombre)
         .input('descripcion', sql.NVarChar, descripcion)
-        .input('precio', sql.Decimal(10, 2), precio);
+        .input('precio', sql.Decimal(10, 2), precio)
+        .input('imagen_destacada', sql.NVarChar, req.body.imagen_destacada);
 
       if (imagenNueva) {
         request.input('imagen', sql.NVarChar, imagenNueva);
         await request.query(`
-          UPDATE Productos
-          SET nombre_producto = @nombre,
-              descripcion_producto = @descripcion,
-              precio_producto = @precio,
-              imagen = @imagen
-          WHERE id_producto = @id
+UPDATE Productos
+SET nombre_producto = @nombre,
+    descripcion_producto = @descripcion,
+    precio_producto = @precio,
+    imagen = @imagen,
+    imagen_destacada = @imagen_destacada
+WHERE id_producto = @id
         `);
       } else {
         await request.query(`
-          UPDATE Productos
-          SET nombre_producto = @nombre,
-              descripcion_producto = @descripcion,
-              precio_producto = @precio
-          WHERE id_producto = @id
+UPDATE Productos
+SET nombre_producto = @nombre,
+    descripcion_producto = @descripcion,
+    precio_producto = @precio,
+    imagen_destacada = @imagen_destacada
+WHERE id_producto = @id
         `);
       }
 

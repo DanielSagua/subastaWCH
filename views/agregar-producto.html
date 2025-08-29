@@ -34,6 +34,17 @@
         <input type="file" name="imagenes" multiple accept="image/*" class="form-control" />
         <!-- <input type="file" id="imagen" name="imagen" class="form-control" accept="image/*" /> -->
       </div>
+      <div class="mb-3">
+        <label for="imagen_destacada" class="form-label">Imagen destacada</label>
+        <select name="imagen_destacada" id="imagen_destacada" class="form-select">
+          <option value="">Seleccionar una imagen</option>
+          <option value="imagen">Principal</option>
+          <option value="imagen1">Imagen 1</option>
+          <option value="imagen2">Imagen 2</option>
+          <option value="imagen3">Imagen 3</option>
+          <option value="imagen4">Imagen 4</option>
+        </select>
+      </div>
       <button type="submit" class="btn btn-success">Agregar</button>
       <a href="/gestion-productos.html" class="btn btn-secondary ms-2">Volver</a>
 
@@ -61,31 +72,31 @@
   </div>
 
   <script>
-  document.getElementById('formAgregar').addEventListener('submit', async function (e) {
-    e.preventDefault();
+    document.getElementById('formAgregar').addEventListener('submit', async function (e) {
+      e.preventDefault();
 
-    const form = document.getElementById('formAgregar');
-    const formData = new FormData(form); // ✅ Esto incluye archivos
+      const form = document.getElementById('formAgregar');
+      const formData = new FormData(form); // ✅ Esto incluye archivos
 
-    try {
-      const res = await fetch('/productos', {
-        method: 'POST',
-        body: formData // ✅ No establezcas Content-Type, el navegador lo hace por ti
-      });
+      try {
+        const res = await fetch('/productos', {
+          method: 'POST',
+          body: formData // ✅ No establezcas Content-Type, el navegador lo hace por ti
+        });
 
-      const data = await res.json();
-      if (res.ok) {
-        document.getElementById('mensaje').textContent = 'Producto agregado exitosamente.';
-        form.reset();
-      } else {
-        alert(data.message || 'Error al agregar producto');
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById('mensaje').textContent = 'Producto agregado exitosamente.';
+          form.reset();
+        } else {
+          alert(data.message || 'Error al agregar producto');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Error al conectar con el servidor');
       }
-    } catch (err) {
-      console.error(err);
-      alert('Error al conectar con el servidor');
-    }
-  });
-</script>
+    });
+  </script>
 
 </body>
 

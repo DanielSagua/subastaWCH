@@ -5,6 +5,7 @@
   object-position: center;
   border-radius: 0.5rem;
 }
+
 .card-altura-fija {
   height: 100%;
   display: flex;
@@ -34,7 +35,21 @@
   background-color: transparent;
   filter: invert(27%) sepia(94%) saturate(749%) hue-rotate(182deg) brightness(93%) contrast(85%);
 }
+
 /* Reconocer los saltos de linea de descripcion */
 .descripcion-con-saltos {
   white-space: pre-line;
+}
+
+/* Imagen Ampliable */
+.imagen-ampliable {
+  cursor: zoom-in;
+}
+
+#imagenGrande {
+  width: 100%;
+  height: 80vh;
+  /* Altura máxima visible */
+  object-fit: contain;
+  object-position: center;
 }
