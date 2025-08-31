@@ -37,10 +37,19 @@
                 <form id="formOferta" class="mt-4">
                     <div class="mb-3">
                         <label for="monto" class="form-label">Tu oferta ($):</label>
+                        <!-- <input type="number" id="monto" class="form-control" required min="1"
+                            placeholder="Ingresa aqui el monto de tu oferta." /> -->
                         <input type="number" id="monto" class="form-control" required min="1"
                             placeholder="Ingresa aqui el monto de tu oferta." />
+
                     </div>
-                    <button type="submit" class="btn btn-success">Ofertar</button>
+                    <button type="submit" class="btn btn-success" id="btnOfertar">
+                        <span id="spinner" class="spinner-border spinner-border-sm d-none me-2" role="status"
+                            aria-hidden="true"></span>
+                        Ofertar
+                    </button>
+
+                    <!-- <button type="submit" class="btn btn-success">Ofertar</button> -->
                     <div id="mensaje" class="mt-3 text-danger"></div>
                 </form>
             </div>
@@ -131,9 +140,84 @@
             }
         }
 
+        // document.getElementById('formOferta').addEventListener('submit', async (e) => {
+        //     e.preventDefault();
+        //     const monto = parseFloat(document.getElementById('monto').value);
+
+        //     try {
+        //         const res = await fetch(`/producto/${id}/ofertar`, {
+        //             method: 'POST',
+        //             headers: { 'Content-Type': 'application/json' },
+        //             body: JSON.stringify({ monto })
+        //         });
+
+        //         const result = await res.json();
+        //         if (res.ok) {
+        //             const msg = document.getElementById('mensaje');
+        //             msg.textContent = 'Oferta registrada con éxito.';
+        //             msg.classList.remove('text-danger');
+        //             msg.classList.add('text-success');
+        //             document.getElementById('monto').value = '';
+        //             await cargarOfertaMaxima();
+        //         } else {
+        //             const msg = document.getElementById('mensaje');
+        //             msg.textContent = result.message || 'Error al ofertar.';
+        //             msg.classList.remove('text-success');
+        //             msg.classList.add('text-danger');
+        //         }
+        //     } catch (error) {
+        //         console.error(error);
+        //         document.getElementById('mensaje').textContent = 'Error al enviar oferta.';
+        //     }
+        // });
+        // document.getElementById('formOferta').addEventListener('submit', async (e) => {
+        //     e.preventDefault();
+        //     const monto = parseFloat(document.getElementById('monto').value);
+        //     const boton = e.target.querySelector('button[type="submit"]');
+        //     const msg = document.getElementById('mensaje');
+
+        //     boton.disabled = true;
+        //     msg.textContent = '';
+        //     msg.classList.remove('text-danger', 'text-success');
+
+        //     try {
+        //         const res = await fetch(`/producto/${id}/ofertar`, {
+        //             method: 'POST',
+        //             headers: { 'Content-Type': 'application/json' },
+        //             body: JSON.stringify({ monto })
+        //         });
+
+        //         const result = await res.json();
+
+        //         if (res.ok) {
+        //             msg.textContent = 'Oferta registrada con éxito.';
+        //             msg.classList.add('text-success');
+        //             document.getElementById('monto').value = '';
+        //             await cargarOfertaMaxima();
+        //         } else {
+        //             msg.textContent = result.message || 'Error al ofertar.';
+        //             msg.classList.add('text-danger');
+        //         }
+        //     } catch (error) {
+        //         console.error(error);
+        //         msg.textContent = 'Error al enviar oferta.';
+        //         msg.classList.add('text-danger');
+        //     } finally {
+        //         boton.disabled = false;
+        //     }
+        // });
         document.getElementById('formOferta').addEventListener('submit', async (e) => {
             e.preventDefault();
+
             const monto = parseFloat(document.getElementById('monto').value);
+            const btn = document.getElementById('btnOfertar');
+            const spinner = document.getElementById('spinner');
+            const msg = document.getElementById('mensaje');
+
+            btn.disabled = true;
+            spinner.classList.remove('d-none');
+            msg.textContent = '';
+            msg.classList.remove('text-danger', 'text-success');
 
             try {
                 const res = await fetch(`/producto/${id}/ofertar`, {
@@ -143,24 +227,27 @@
                 });
 
                 const result = await res.json();
+
                 if (res.ok) {
-                    const msg = document.getElementById('mensaje');
                     msg.textContent = 'Oferta registrada con éxito.';
-                    msg.classList.remove('text-danger');
                     msg.classList.add('text-success');
                     document.getElementById('monto').value = '';
                     await cargarOfertaMaxima();
                 } else {
-                    const msg = document.getElementById('mensaje');
                     msg.textContent = result.message || 'Error al ofertar.';
-                    msg.classList.remove('text-success');
                     msg.classList.add('text-danger');
                 }
             } catch (error) {
                 console.error(error);
-                document.getElementById('mensaje').textContent = 'Error al enviar oferta.';
+                msg.textContent = 'Error al enviar oferta.';
+                msg.classList.add('text-danger');
+            } finally {
+                btn.disabled = false;
+                spinner.classList.add('d-none');
             }
         });
+
+
 
         cargarProducto();
         cargarOfertaMaxima();
@@ -205,6 +292,20 @@
                     modal.show();
                 }
             });
+        });
+        const inputMonto = document.getElementById('monto');
+        inputMonto.addEventListener('input', () => {
+            const mensaje = document.getElementById('mensaje');
+            const valor = inputMonto.value;
+
+            if (/[^0-9]/.test(valor)) {
+                mensaje.textContent = 'Solo se permiten números en el campo de oferta.';
+                mensaje.classList.remove('text-success');
+                mensaje.classList.add('text-danger');
+            } else {
+                mensaje.textContent = '';
+                mensaje.classList.remove('text-danger');
+            }
         });
 
 
