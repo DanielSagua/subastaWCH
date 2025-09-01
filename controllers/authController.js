@@ -97,9 +97,74 @@ const authController = {
     }
   },
 
+  // cambiarPassword: async (req, res) => {
+  //   const { token } = req.params;
+  //   const { nuevaPassword } = req.body;
+
+  //   try {
+  //     const decoded = jwt.verify(token, JWT_SECRET);
+  //     const hashed = await bcrypt.hash(nuevaPassword, 10);
+
+  //     const pool = await db;
+  //     await pool.request()
+  //       .input('id', sql.Int, decoded.id)
+  //       .input('password', sql.NVarChar, hashed)
+  //       .query('UPDATE Usuarios SET password = @password WHERE id_usuario = @id');
+
+  //     res.json({ message: 'Contraseña actualizada con éxito' });
+  //   } catch (error) {
+  //     console.error('Error al cambiar contraseña:', error);
+  //     res.status(400).json({ message: 'Token inválido o expirado' });
+  //   }
+  // }
+
+  // cambiarPassword: async (req, res) => {
+  //   const { token } = req.query; // 👈 Si usas ?token= en la URL
+  //   const { password } = req.body; // 👈 El nombre debe coincidir con el form
+
+  //   try {
+  //     const decoded = jwt.verify(token, JWT_SECRET);
+  //     const hashed = await bcrypt.hash(password, 10);
+
+  //     const pool = await db;
+  //     await pool.request()
+  //       .input('id', sql.Int, decoded.id)
+  //       .input('password', sql.NVarChar, hashed)
+  //       .query('UPDATE Usuarios SET password = @password WHERE id_usuario = @id');
+
+  //     res.json({ message: 'Contraseña actualizada con éxito' });
+  //   } catch (error) {
+  //     console.error('Error al cambiar contraseña:', error);
+  //     res.status(400).json({ message: 'Token inválido o expirado' });
+  //   }
+  // }
+
+  // cambiarPassword: async (req, res) => {
+  //   const { token } = req.params; // 👈 CAMBIADO: antes usaba req.query
+  //   const { password } = req.body;
+
+  //   try {
+  //     const decoded = jwt.verify(token, JWT_SECRET);
+  //     const hashed = await bcrypt.hash(password, 10);
+
+  //     const pool = await db;
+  //     await pool.request()
+  //       .input('id', sql.Int, decoded.id)
+  //       .input('password', sql.NVarChar, hashed)
+  //       .query('UPDATE Usuarios SET password = @password WHERE id_usuario = @id');
+
+  //     res.json({ message: 'Contraseña actualizada con éxito' });
+  //   } catch (error) {
+  //     console.error('Error al cambiar contraseña:', error);
+  //     res.status(400).json({ message: 'Token inválido o expirado' });
+  //   }
+  // }
+
   cambiarPassword: async (req, res) => {
     const { token } = req.params;
     const { nuevaPassword } = req.body;
+
+
     try {
       const decoded = jwt.verify(token, JWT_SECRET);
       const hashed = await bcrypt.hash(nuevaPassword, 10);
@@ -116,6 +181,9 @@ const authController = {
       res.status(400).json({ message: 'Token inválido o expirado' });
     }
   }
+
+
+
 };
 
 module.exports = authController;

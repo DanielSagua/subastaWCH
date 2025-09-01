@@ -7,6 +7,16 @@ const nodemailer = require('nodemailer');
 require('dotenv').config();
 const ENVIAR_CORREOS = process.env.ENVIAR_CORREOS === 'true';
 
+// ⬇️ NUEVO: solo importo constructores de asunto+HTML (no cambia tu envío)
+const {
+  tplNuevoProducto,
+  tplSubastaCancelada,
+  tplOfertaRegistrada,
+  tplHasSidoSuperado,
+  tplGanasteSubasta,
+  tplSubastaFinalizadaParaParticipante,
+  tplSubastaFinalizadaAdmin
+} = require('../emails/builders');
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -29,24 +39,6 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 const productoController = {
-
-  // listarActivos: async (req, res) => {
-  //   try {
-  //     const pool = await db;
-  //     const result = await pool.request().query(`
-  //     SELECT 
-  //       p.*, 
-  //       (SELECT MAX(monto_oferta) FROM Ofertas WHERE id_producto = p.id_producto) AS oferta_maxima
-  //     FROM Productos p
-  //     WHERE p.finalizada = 0
-  //     ORDER BY p.fecha_publicacion_producto DESC
-  //   `);
-  //     res.json(result.recordset);
-  //   } catch (error) {
-  //     console.error('Error al listar productos activos:', error);
-  //     res.status(500).json({ message: 'Error al obtener productos activos' });
-  //   }
-  // },
 
   listarActivos: async (req, res) => {
     try {
@@ -114,8 +106,6 @@ const productoController = {
     const { nombre, descripcion, precio } = req.body;
     console.log('Archivo recibido:', req.file);
 
-    // const imagen = req.file?.filename || 'test.webp';
-
     const archivos = req.files || [];
     const imagenes = archivos.map(f => f.filename);
 
@@ -125,7 +115,6 @@ const productoController = {
     const imagen2 = imagenes[2] || null;
     const imagen3 = imagenes[3] || null;
     const imagen4 = imagenes[4] || null;
-
 
     try {
       const pool = await db;
@@ -142,11 +131,7 @@ const productoController = {
         .query(`
 INSERT INTO Productos (nombre_producto, descripcion_producto, precio_producto, imagen, imagen1, imagen2, imagen3, imagen4, imagen_destacada)
 VALUES (@nombre, @descripcion, @precio, @imagen, @imagen1, @imagen2, @imagen3, @imagen4, @imagen_destacada)
-
   `);
-
-
-
 
       if (process.env.AVISO_PRODUCTO_NUEVO === 'true') {
         const usuariosResult = await pool.request().query(`
@@ -155,14 +140,13 @@ VALUES (@nombre, @descripcion, @precio, @imagen, @imagen1, @imagen2, @imagen3, @
 
         for (const usuario of usuariosResult.recordset) {
           if (ENVIAR_CORREOS) {
+            // ⬇️ USO DE PLANTILLA (mismo contenido que antes)
+            const { subject, html } = tplNuevoProducto({ nombreUsuario: usuario.nombre_usuario });
             await transporter.sendMail({
               from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
               to: usuario.correo,
-              subject: '🆕 Nuevo producto en subasta',
-              html: `
-        <p>Hola ${usuario.nombre_usuario},</p>
-        <p>Se ha publicado un nuevo producto. ¡Revísalo en el sistema!</p>
-      `
+              subject,
+              html
             });
           }
         }
@@ -248,11 +232,16 @@ WHERE id_producto = @id
 
       for (const usuario of ofertantes.recordset) {
         if (ENVIAR_CORREOS) {
+          // ⬇️ USO DE PLANTILLA
+          const { subject, html } = tplSubastaCancelada({
+            nombreUsuario: usuario.nombre_usuario,
+            idProducto: id
+          });
           await transporter.sendMail({
             from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
             to: usuario.correo,
-            subject: '❌ Subasta cancelada',
-            html: `<p>Hola ${usuario.nombre_usuario},<br>La subasta del producto ID ${id} fue cancelada.</p>`
+            subject,
+            html
           });
         }
       }
@@ -336,26 +325,33 @@ WHERE id_producto = @id
 
       // Enviar correo de confirmación al ofertante actual
       if (ENVIAR_CORREOS) {
+        // ⬇️ USO DE PLANTILLA
+        const { subject, html } = tplOfertaRegistrada({
+          nombreUsuario: usuario.nombre_usuario,
+          monto,
+          idProducto: id_producto
+        });
         await transporter.sendMail({
           from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
           to: usuario.correo,
-          subject: '📝 Oferta registrada',
-          html: `<p>Hola ${usuario.nombre_usuario}, tu oferta de $${monto} fue registrada en el producto ID ${id_producto}.</p>`
+          subject,
+          html
         });
       }
 
       // ✅ Enviar correo al usuario anterior solo si es distinto
       if (anteriorUsuario && anteriorUsuario.id_usuario !== id_usuario) {
         if (ENVIAR_CORREOS) {
+          // ⬇️ USO DE PLANTILLA
+          const { subject, html } = tplHasSidoSuperado({
+            nombreUsuario: anteriorUsuario.nombre_usuario,
+            idProducto: id_producto
+          });
           await transporter.sendMail({
             from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
             to: anteriorUsuario.correo,
-            subject: '📉 Has sido superado en una subasta',
-            html: `
-          <p>Hola ${anteriorUsuario.nombre_usuario},</p>
-          <p>Tu oferta ya no es la más alta en el producto ID ${id_producto}.</p>
-          <p>¡Haz tu mejor oferta para recuperar el liderazgo!</p>
-        `
+            subject,
+            html
           });
         }
       }
@@ -402,11 +398,16 @@ WHERE id_producto = @id
           .input('id_usuario', sql.Int, ganador)
           .query('SELECT nombre_usuario, correo FROM Usuarios WHERE id_usuario = @id_usuario');
         if (ENVIAR_CORREOS) {
+          // ⬇️ USO DE PLANTILLA
+          const { subject, html } = tplGanasteSubasta({
+            nombreUsuario: usuario.recordset[0].nombre_usuario,
+            idProducto: id
+          });
           await transporter.sendMail({
             from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
             to: usuario.recordset[0].correo,
-            subject: '🎉 Has ganado la subasta',
-            html: `<p>Hola ${usuario.recordset[0].nombre_usuario}, has ganado la subasta del producto ID ${id}.</p>`
+            subject,
+            html
           });
         }
       }
@@ -422,21 +423,31 @@ WHERE id_producto = @id
 
       for (const usuario of ofertantes.recordset) {
         if (ENVIAR_CORREOS) {
+          // ⬇️ USO DE PLANTILLA
+          const { subject, html } = tplSubastaFinalizadaParaParticipante({
+            nombreUsuario: usuario.nombre_usuario,
+            idProducto: id
+          });
           await transporter.sendMail({
             from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
             to: usuario.correo,
-            subject: '📢 Subasta finalizada',
-            html: `<p>Hola ${usuario.nombre_usuario}, la subasta del producto ID ${id} ha finalizado. Gracias por participar.</p>`
+            subject,
+            html
           });
         }
       }
 
       if (ENVIAR_CORREOS) {
+        // ⬇️ USO DE PLANTILLA
+        const { subject, html } = tplSubastaFinalizadaAdmin({
+          idProducto: id,
+          ganadorId: ganador
+        });
         await transporter.sendMail({
           from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
           to: 'admin@empresa.cl',
-          subject: '📬 Subasta finalizada',
-          html: `<p>La subasta ID ${id} ha finalizado.${ganador ? ` Ganador ID: ${ganador}` : ' Sin ganador.'}</p>`
+          subject,
+          html
         });
       }
       res.json({ message: 'Subasta finalizada' });
