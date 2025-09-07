@@ -218,7 +218,7 @@ WHERE id_producto = @id
       const pool = await db;
       const result = await pool.request()
         .input('id', sql.Int, id)
-        .query('SELECT imagen FROM Productos WHERE id_producto = @id');
+        .query('SELECT imagen, nombre_producto FROM Productos WHERE id_producto = @id');
       const imagen = result.recordset[0]?.imagen;
 
       const ofertantes = await pool.request()
@@ -235,7 +235,7 @@ WHERE id_producto = @id
           // ⬇️ USO DE PLANTILLA
           const { subject, html } = tplSubastaCancelada({
             nombreUsuario: usuario.nombre_usuario,
-            idProducto: id
+            nombreProducto: result.recordset[0].nombre_producto
           });
           await transporter.sendMail({
             from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
@@ -278,7 +278,7 @@ WHERE id_producto = @id
       const productoResult = await pool.request()
         .input('id_producto', sql.Int, id_producto)
         .query(`
-    SELECT fecha_publicacion_producto, precio_producto 
+    SELECT nombre_producto, fecha_publicacion_producto, precio_producto 
     FROM Productos 
     WHERE id_producto = @id_producto
   `);
@@ -326,10 +326,11 @@ WHERE id_producto = @id
       // Enviar correo de confirmación al ofertante actual
       if (ENVIAR_CORREOS) {
         // ⬇️ USO DE PLANTILLA
+        const nombreProducto = producto.nombre_producto; // Ya tienes producto en esa función
         const { subject, html } = tplOfertaRegistrada({
           nombreUsuario: usuario.nombre_usuario,
           monto,
-          idProducto: id_producto
+          nombreProducto
         });
         await transporter.sendMail({
           from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
@@ -343,9 +344,10 @@ WHERE id_producto = @id
       if (anteriorUsuario && anteriorUsuario.id_usuario !== id_usuario) {
         if (ENVIAR_CORREOS) {
           // ⬇️ USO DE PLANTILLA
+          const nombreProducto = producto.nombre_producto;
           const { subject, html } = tplHasSidoSuperado({
             nombreUsuario: anteriorUsuario.nombre_usuario,
-            idProducto: id_producto
+            nombreProducto
           });
           await transporter.sendMail({
             from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
@@ -384,6 +386,13 @@ WHERE id_producto = @id
 
       const ganador = result.recordset[0]?.id_usuario || null;
 
+      //Obtener nombre producto
+      const prodResult = await pool.request()
+        .input('id', sql.Int, id)
+        .query('SELECT nombre_producto FROM Productos WHERE id_producto = @id');
+      const nombreProducto = prodResult.recordset[0]?.nombre_producto;
+
+
       await pool.request()
         .input('id', sql.Int, id)
         .input('ganador', sql.Int, ganador)
@@ -401,7 +410,7 @@ WHERE id_producto = @id
           // ⬇️ USO DE PLANTILLA
           const { subject, html } = tplGanasteSubasta({
             nombreUsuario: usuario.recordset[0].nombre_usuario,
-            idProducto: id
+            nombreProducto
           });
           await transporter.sendMail({
             from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
@@ -426,7 +435,7 @@ WHERE id_producto = @id
           // ⬇️ USO DE PLANTILLA
           const { subject, html } = tplSubastaFinalizadaParaParticipante({
             nombreUsuario: usuario.nombre_usuario,
-            idProducto: id
+            nombreProducto
           });
           await transporter.sendMail({
             from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
@@ -441,11 +450,12 @@ WHERE id_producto = @id
         // ⬇️ USO DE PLANTILLA
         const { subject, html } = tplSubastaFinalizadaAdmin({
           idProducto: id,
-          ganadorId: ganador
+          ganadorId: ganador,
+          nombreProducto
         });
         await transporter.sendMail({
           from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
-          to: 'admin@empresa.cl',
+          to: 'danielsagua.n@gmail.com',
           subject,
           html
         });

@@ -23,13 +23,13 @@
     </div>
   </nav>
 
-  <div class="container my-5">
+  <main class="container my-5">
     <h2 class="mb-4 text-center">Productos disponibles</h2>
     <div id="contenedorProductos" class="row g-4">
       <!-- Productos aquí -->
     </div>
-  </div>
-<!-- FOOTER -->
+  </main>
+  <!-- FOOTER -->
   <footer class="bg-dark text-white text-center py-3 mt-5">
     <div class="container">
       &copy; <span id="anioActual"></span> DanielS 2025 | Subastas Internas WEG Chile | Area Operaciones
@@ -64,7 +64,9 @@
               .slice(0, 30)
               .join(' ') + ((p.descripcion_producto?.split(' ').length > 30) ? '…' : '')}</p>
       <p><strong>Precio base:</strong> $${p.precio_producto.toLocaleString()}</p>
-      <p><strong>Oferta máxima:</strong> $${(p.oferta_maxima || 0).toLocaleString()}</p>
+<p><strong>Oferta máxima:</strong> ${p.oferta_maxima ? `${p.oferta_maxima.toLocaleString()}` : 'Nadie ha ofertado aún'
+            }</p>
+
       <a href="/producto.html?id=${p.id_producto}" class="btn btn-sm btn-outline-primary">Ver más</a>
     </div>
   </div>

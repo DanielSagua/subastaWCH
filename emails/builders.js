@@ -20,12 +20,12 @@ function tplNuevoProducto({ nombreUsuario }) {
 }
 
 /** 2) Aviso: subasta cancelada (a los ofertantes) */
-function tplSubastaCancelada({ nombreUsuario, idProducto }) {
+function tplSubastaCancelada({ nombreUsuario, nombreProducto }) {
     const subject = '❌ Subasta cancelada';
     const html = `
     <div style="font-family:Arial,Helvetica,sans-serif;line-height:1.5;color:#222;">
       <p>Hola ${nombreUsuario},</p>
-      <p>La subasta del producto ID <b>${idProducto}</b> fue cancelada.</p>
+      <p>La subasta del producto <b>${nombreProducto}</b> fue cancelada.</p>
       <hr style="margin:16px 0;border:none;border-top:1px solid #eee;">
       <small>Subastas WCH</small>
     </div>
@@ -34,12 +34,12 @@ function tplSubastaCancelada({ nombreUsuario, idProducto }) {
 }
 
 /** 3) Confirmación: oferta registrada (al ofertante actual) */
-function tplOfertaRegistrada({ nombreUsuario, monto, idProducto }) {
+function tplOfertaRegistrada({ nombreUsuario, monto, nombreProducto }) {
     const subject = '📝 Oferta registrada';
     const html = `
     <div style="font-family:Arial,Helvetica,sans-serif;line-height:1.5;color:#222;">
       <p>Hola ${nombreUsuario},</p>
-      <p>Tu oferta de <b>${clp(monto)}</b> fue registrada en el producto ID <b>${idProducto}</b>.</p>
+      <p>Tu oferta de <b>${clp(monto)}</b> fue registrada en el producto <b>${nombreProducto}</b>.</p>
       <hr style="margin:16px 0;border:none;border-top:1px solid #eee;">
       <small>Subastas WCH</small>
     </div>
@@ -48,12 +48,12 @@ function tplOfertaRegistrada({ nombreUsuario, monto, idProducto }) {
 }
 
 /** 4) Aviso: has sido superado (al ofertante anterior) */
-function tplHasSidoSuperado({ nombreUsuario, idProducto }) {
+function tplHasSidoSuperado({ nombreUsuario, nombreProducto }) {
     const subject = '📉 Has sido superado en una subasta';
     const html = `
     <div style="font-family:Arial,Helvetica,sans-serif;line-height:1.5;color:#222;">
       <p>Hola ${nombreUsuario},</p>
-      <p>Tu oferta ya no es la más alta en el producto ID <b>${idProducto}</b>.</p>
+      <p>Tu oferta ya no es la más alta en el producto <b>${nombreProducto}</b>.</p>
       <p>¡Haz tu mejor oferta para recuperar el liderazgo!</p>
       <hr style="margin:16px 0;border:none;border-top:1px solid #eee;">
       <small>Subastas WCH</small>
@@ -63,12 +63,12 @@ function tplHasSidoSuperado({ nombreUsuario, idProducto }) {
 }
 
 /** 5) Aviso: ganaste la subasta (al ganador) */
-function tplGanasteSubasta({ nombreUsuario, idProducto }) {
+function tplGanasteSubasta({ nombreUsuario, nombreProducto }) {
     const subject = '🎉 Has ganado la subasta';
     const html = `
     <div style="font-family:Arial,Helvetica,sans-serif;line-height:1.5;color:#222;">
       <p>Hola ${nombreUsuario},</p>
-      <p>Has ganado la subasta del producto ID <b>${idProducto}</b>.</p>
+      <p>Has ganado la subasta del producto <b>${nombreProducto}</b>.</p>
       <hr style="margin:16px 0;border:none;border-top:1px solid #eee;">
       <small>Subastas WCH</small>
     </div>
@@ -77,12 +77,12 @@ function tplGanasteSubasta({ nombreUsuario, idProducto }) {
 }
 
 /** 6) Aviso: subasta finalizada (a participantes que no ganaron) */
-function tplSubastaFinalizadaParaParticipante({ nombreUsuario, idProducto }) {
+function tplSubastaFinalizadaParaParticipante({ nombreUsuario, nombreProducto }) {
     const subject = '📢 Subasta finalizada';
     const html = `
     <div style="font-family:Arial,Helvetica,sans-serif;line-height:1.5;color:#222;">
       <p>Hola ${nombreUsuario},</p>
-      <p>La subasta del producto ID <b>${idProducto}</b> ha finalizado. Gracias por participar.</p>
+      <p>La subasta del producto <b>${nombreProducto}</b> ha finalizado. Gracias por participar.</p>
       <hr style="margin:16px 0;border:none;border-top:1px solid #eee;">
       <small>Subastas WCH</small>
     </div>
@@ -91,12 +91,12 @@ function tplSubastaFinalizadaParaParticipante({ nombreUsuario, idProducto }) {
 }
 
 /** 7) Aviso: subasta finalizada (al administrador) */
-function tplSubastaFinalizadaAdmin({ idProducto, ganadorId }) {
+function tplSubastaFinalizadaAdmin({ nombreProducto, ganadorId }) {
     const subject = '📬 Subasta finalizada';
     const ganadorTxt = ganadorId ? ` Ganador ID: ${ganadorId}` : ' Sin ganador.';
     const html = `
     <div style="font-family:Arial,Helvetica,sans-serif;line-height:1.5;color:#222;">
-      <p>La subasta ID <b>${idProducto}</b> ha finalizado.${ganadorTxt}</p>
+      <p>La subasta <b>${nombreProducto}</b> ha finalizado.${ganadorTxt}</p>
       <hr style="margin:16px 0;border:none;border-top:1px solid #eee;">
       <small>Subastas WCH</small>
     </div>
