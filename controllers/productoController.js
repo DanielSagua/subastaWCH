@@ -41,7 +41,12 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // Helper: cierra subasta + envía correos (ganador, participantes, admin)
-async function cerrarSubastaYNotificar(pool, req, id_producto) {
+async function cerrarSubastaYNotificar(pool, ctx, id_producto) {
+  // ctx puede ser req (Express) o un string con la baseUrl
+  const baseUrl = (typeof ctx === 'string')
+    ? ctx
+    : `${ctx.protocol}://${ctx.get('host')}`;
+
   const check = await pool.request()
     .input('id', sql.Int, id_producto)
     .query('SELECT finalizada, nombre_producto FROM Productos WHERE id_producto = @id');
@@ -70,10 +75,10 @@ async function cerrarSubastaYNotificar(pool, req, id_producto) {
       WHERE id_producto = @id
     `);
 
-  const baseUrl = `${req.protocol}://${req.get('host')}`;
   const urlProducto = `${baseUrl}/producto.html?id=${id_producto}`;
 
   if (ENVIAR_CORREOS) {
+    // Ganador
     if (ganador) {
       const u = await pool.request()
         .input('id_usuario', sql.Int, ganador)
@@ -92,6 +97,7 @@ async function cerrarSubastaYNotificar(pool, req, id_producto) {
       });
     }
 
+    // Participantes no ganadores
     const ofertantes = await pool.request()
       .input('id', sql.Int, id_producto)
       .query(`
@@ -115,17 +121,13 @@ async function cerrarSubastaYNotificar(pool, req, id_producto) {
       });
     }
 
-    // const { subject, html } = tplSubastaFinalizadaAdmin({
-    //   idProducto: id_producto,
-    //   ganadorId: ganador,
-    //   nombreProducto
-    // });
+    // Admin: nombre del ganador (no ID)
     let nombreGanador = null;
     if (ganador) {
-      const u = await pool.request()
+      const u2 = await pool.request()
         .input('id_usuario', sql.Int, ganador)
         .query('SELECT nombre_usuario FROM Usuarios WHERE id_usuario = @id_usuario');
-      nombreGanador = u.recordset[0]?.nombre_usuario || null;
+      nombreGanador = u2.recordset[0]?.nombre_usuario || null;
     }
 
     const { subject, html } = tplSubastaFinalizadaAdmin({
@@ -141,6 +143,7 @@ async function cerrarSubastaYNotificar(pool, req, id_producto) {
     });
   }
 }
+
 
 
 
@@ -162,9 +165,12 @@ const productoController = {
       `);
 
       // Cerrar y notificar cada una
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      // Cerrar y notificar cada una
       for (const row of vencidas.recordset) {
-        await cerrarSubastaYNotificar(pool, req, row.id_producto);
+        await cerrarSubastaYNotificar(pool, baseUrl, row.id_producto);
       }
+
 
       // Listar activos con datos para el contador del front
       const result = await pool.request()
@@ -669,10 +675,17 @@ const productoController = {
       }
 
       if (ENVIAR_CORREOS) {
+        let nombreGanador = null;
+        if (ganador) {
+          const u2 = await pool.request()
+            .input('id_usuario', sql.Int, ganador)
+            .query('SELECT nombre_usuario FROM Usuarios WHERE id_usuario = @id_usuario');
+          nombreGanador = u2.recordset[0]?.nombre_usuario || null;
+        }
+
         const { subject, html } = tplSubastaFinalizadaAdmin({
-          idProducto: id,
-          ganadorId: ganador,
-          nombreProducto
+          nombreProducto,
+          nombreGanador
         });
         await transporter.sendMail({
           from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
@@ -681,6 +694,7 @@ const productoController = {
           html
         });
       }
+
 
       res.json({ message: 'Subasta finalizada' });
     } catch (error) {
@@ -692,5 +706,6 @@ const productoController = {
 
 module.exports = {
   ...productoController,
-  upload
+  upload,
+  cerrarSubastaYNotificar
 };

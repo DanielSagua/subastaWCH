@@ -4,6 +4,13 @@ const flash = require('connect-flash');
 const bodyParser = require('body-parser');
 const path = require('path');
 require('dotenv').config();
+const sql = require('mssql');
+const db = require('./db/sql');
+const { cerrarSubastaYNotificar } = require('./controllers/productoController');
+
+const DURACION_MIN = parseInt(process.env.SUBASTA_DURACION_MINUTOS || '2880', 10);
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
+
 
 const { isAuthenticated, isAdmin } = require('./middlewares/authMiddleware');
 
@@ -91,6 +98,35 @@ app.use('/', productoRoutes);
 
 // Ruta base
 app.get('/', (req, res) => res.redirect('/login.html'));
+
+async function cerrarExpiradasJob() {
+  try {
+    const pool = await db;
+    const vencidas = await pool.request()
+      .input('duracion', sql.Int, DURACION_MIN)
+      .query(`
+        SELECT id_producto
+        FROM Productos
+        WHERE finalizada = 0
+          AND DATEADD(MINUTE, @duracion, fecha_publicacion_producto) <= GETDATE()
+      `);
+
+    for (const row of vencidas.recordset) {
+      await cerrarSubastaYNotificar(pool, BASE_URL, row.id_producto);
+    }
+
+    if (vencidas.recordset.length > 0) {
+      console.log(`[subastas] cerradas automáticamente: ${vencidas.recordset.length}`);
+    }
+  } catch (err) {
+    console.error('[subastas] error en job automático:', err);
+  }
+}
+
+// Ejecuta al iniciar
+cerrarExpiradasJob();
+// Y cada 60 segundos
+setInterval(cerrarExpiradasJob, 60 * 1000);
 
 
 // Iniciar servidor
