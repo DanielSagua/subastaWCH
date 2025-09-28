@@ -115,11 +115,24 @@ async function cerrarSubastaYNotificar(pool, req, id_producto) {
       });
     }
 
+    // const { subject, html } = tplSubastaFinalizadaAdmin({
+    //   idProducto: id_producto,
+    //   ganadorId: ganador,
+    //   nombreProducto
+    // });
+    let nombreGanador = null;
+    if (ganador) {
+      const u = await pool.request()
+        .input('id_usuario', sql.Int, ganador)
+        .query('SELECT nombre_usuario FROM Usuarios WHERE id_usuario = @id_usuario');
+      nombreGanador = u.recordset[0]?.nombre_usuario || null;
+    }
+
     const { subject, html } = tplSubastaFinalizadaAdmin({
-      idProducto: id_producto,
-      ganadorId: ganador,
-      nombreProducto
+      nombreProducto,
+      nombreGanador
     });
+
     await transporter.sendMail({
       from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
       to: 'danielsagua.n@gmail.com',

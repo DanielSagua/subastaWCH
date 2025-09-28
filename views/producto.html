@@ -33,7 +33,7 @@
                 <div id="descripcion" class="card-text descripcion-con-saltos"></div>
                 <p><strong>Precio base:</strong> $<span id="precio"></span></p>
                 <p><strong>Tiempo restante:</strong> <span id="contador">Cargando...</span></p>
-                <p><strong>Oferta más alta:</strong> $<span id="oferta_maxima">Cargando...</span></p>
+                <p><strong>Oferta más alta:</strong> <span id="oferta_maxima">Cargando...</span></p>
 
                 <form id="formOferta" class="mt-4">
                     <div class="mb-3">
@@ -154,7 +154,7 @@
                 if (!prod.oferta_maxima) {
                     ofertaSpan.textContent = 'Nadie ha ofertado aún';
                 } else {
-                    ofertaSpan.textContent = `${prod.oferta_maxima.toLocaleString()}`;
+                    ofertaSpan.textContent = `$${prod.oferta_maxima.toLocaleString()}`;
                 }
 
             } catch (e) {

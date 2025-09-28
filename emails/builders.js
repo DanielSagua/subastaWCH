@@ -116,9 +116,11 @@ function tplSubastaFinalizadaParaParticipante({ nombreUsuario, nombreProducto })
 }
 
 /** 7) Aviso: subasta finalizada (al administrador) */
-function tplSubastaFinalizadaAdmin({ nombreProducto, ganadorId }) {
+function tplSubastaFinalizadaAdmin({ nombreProducto, nombreGanador }) {
   const subject = '📬 Subasta finalizada';
-  const ganadorTxt = ganadorId ? ` Ganador ID: ${ganadorId}` : ' Sin ganador.';
+  const ganadorTxt = nombreGanador
+    ? ` Ganador: ${nombreGanador}`
+    : ' Sin ganador.';
   const html = `
     <div style="font-family:Arial,Helvetica,sans-serif;line-height:1.5;color:#222;">
       <p>La subasta <b>${nombreProducto}</b> ha finalizado.${ganadorTxt}</p>
@@ -128,6 +130,7 @@ function tplSubastaFinalizadaAdmin({ nombreProducto, ganadorId }) {
   `;
   return { subject, html };
 }
+
 
 module.exports = {
   tplNuevoProducto,
