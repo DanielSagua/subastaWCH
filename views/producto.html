@@ -12,7 +12,7 @@
 <body class="bg-light">
 
     <main class="container py-5">
-        <a href="/home.html" class="btn btn-secondary mb-3">&larr; Volver</a>
+        <a href="/home.html" class="btn btn-secondary mb-3">&larr; Volver a Productos disponibles</a>
 
         <div class="card shadow">
             <div class="card-body text-center">
@@ -119,15 +119,24 @@
 
 
                 // Calcular hora de finalización (fecha_publicacion + 24 horas)
-                const fechaPublicacion = new Date(data.fecha_publicacion_producto);
-                fechaPublicacion.setHours(fechaPublicacion.getHours() + 4); // Ajusta UTC → GMT-4
-                const fechaFin = new Date(fechaPublicacion.getTime() + 172800000);
+                // ✅ Usa fecha_fin o duracion_min del backend (alineado a SUBASTA_DURACION_MINUTOS)
+                let finMs;
 
-                console.log("🕒 Fecha publicación:", fechaPublicacion.toLocaleString());
-                console.log("🕛 Fecha fin (48h):", fechaFin.toLocaleString());
+                if (typeof data.remaining_seconds === 'number') {
+                    // backend ya calcula segundos restantes con GETDATE()
+                    finMs = Date.now() + Math.max(0, data.remaining_seconds) * 1000;
+                } else if (data.fecha_fin) {
+                    finMs = new Date(data.fecha_fin).getTime();
+                } else if (typeof data.duracion_min === 'number') {
+                    finMs = new Date(data.fecha_publicacion_producto).getTime() + data.duracion_min * 60 * 1000;
+                } else {
+                    // Fallback 48h
+                    finMs = new Date(data.fecha_publicacion_producto).getTime() + 48 * 60 * 60 * 1000;
+                }
+
+                iniciarContador(new Date(finMs));
 
 
-                iniciarContador(fechaFin);
 
             } catch (err) {
                 console.error(err);
