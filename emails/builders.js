@@ -46,8 +46,13 @@ function tplOfertaRegistrada({ nombreUsuario, monto, nombreProducto, urlProducto
   const subject = `✅ Oferta registrada en ${nombreProducto}`;
   const html = `
     <div style="font-family:Arial,Helvetica,sans-serif;line-height:1.5;color:#222;">
-      <p>Hola ${nombreUsuario},</p>
-      <p>Tu oferta de <b>$${monto}</b> ha sido registrada correctamente para el producto <b>${nombreProducto}</b>.</p>
+      <p>Estimado ${nombreUsuario},</p>
+      <p>Tu oferta de <b>$${monto}</b> fue realizada con éxito. <b>${nombreProducto}</b>.</p>
+            <p>Agradecemos considerar lo siguiente:</b>
+
+•	Si eres el ganador, te haremos llegar toda la información a tu correo electrónico.</b>
+•	En caso de que tu apuesta sea superada, llegará un mail a tu correo.</b>
+•	Si eres el ganador/a, tienes 24 horas para realizar el pago o de lo contrario, el producto vuelve a ser ofertado en nuestra plataforma.</b></p>
 
       <p style="margin:16px 0;">
         <a href="${urlProducto}" 
@@ -57,7 +62,7 @@ function tplOfertaRegistrada({ nombreUsuario, monto, nombreProducto, urlProducto
       </p>
 
       <hr style="margin:16px 0;border:none;border-top:1px solid #eee;">
-      <small>Subastas WCH</small>
+      <small>Atentamente,</br>Equipo de WEG Subastas</small>
     </div>
   `;
   return { subject, html };
