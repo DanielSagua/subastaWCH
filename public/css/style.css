@@ -1,9 +1,29 @@
-html, body {
+:root {
+  --azul-primario: #005387;
+  --azul-secundario: #225f78;
+  --azul-claro: #0089b6;
+  --azul-masclaro: #6093ac;
+
+}
+
+html,
+body {
   height: 100%;
   margin: 0;
   display: flex;
   flex-direction: column;
 }
+
+/* Fondo especial solo para login */
+body.login-bg {
+  background-color: var(--azul-primario);
+}
+
+/* Letras color azul-primario */
+.texto-azul-primario {
+  color: var(--azul-primario);
+}
+
 
 main {
   flex: 1;
@@ -64,4 +84,12 @@ main {
   /* Altura máxima visible */
   object-fit: contain;
   object-position: center;
+}
+
+.bg-custom {
+  background-color: #005387 !important;
+}
+
+.text-bg-primary {
+  background-color: #005387 !important;
 }

@@ -11,17 +11,19 @@ function tplNuevoProducto({ nombreUsuario, nombreProducto, urlProducto }) {
   const html = `
     <div style="font-family:Arial,Helvetica,sans-serif;line-height:1.5;color:#222;">
       <p>Hola ${nombreUsuario},</p>
-      <p>Se ha publicado un nuevo producto: <b>${nombreProducto}</b>.</p>
+      <p>El Administrador ha publicado un nuevo articulo en Subastas WCH.<br>
+      El nombre del producto es <b>${nombreProducto}</b>.<br>
+      Se el primero en ofertar haciendo clic en el siguiente boton!</p>
 
       <p style="margin:16px 0;">
         <a href="${urlProducto}" 
-           style="display:inline-block;padding:10px 16px;text-decoration:none;border-radius:6px;border:1px solid #0d6efd;">
-          Ver producto
+           style="display:inline-block;padding:10px 16px;text-decoration:none;border-radius:6px;border:1px solid #005387;">
+          Ve el nuevo producto
         </a>
       </p>
 
       <hr style="margin:16px 0;border:none;border-top:1px solid #eee;">
-      <small>Subastas WCH</small>
+      <small>Atentamente,<br>Equipo de WEG Subastas</small>
     </div>
   `;
   return { subject, html };
@@ -47,12 +49,13 @@ function tplOfertaRegistrada({ nombreUsuario, monto, nombreProducto, urlProducto
   const html = `
     <div style="font-family:Arial,Helvetica,sans-serif;line-height:1.5;color:#222;">
       <p>Estimado ${nombreUsuario},</p>
-      <p>Tu oferta de <b>$${monto}</b> fue realizada con éxito. <b>${nombreProducto}</b>.</p>
-            <p>Agradecemos considerar lo siguiente:</b>
+      <p>Tu oferta de <b>$${monto}</b> fue realizada con éxito en el producto: <b>${nombreProducto}</b>.</p><br>
+      <br>
+            <i><p>Agradecemos considerar lo siguiente:</p>
 
-•	Si eres el ganador, te haremos llegar toda la información a tu correo electrónico.</b>
-•	En caso de que tu apuesta sea superada, llegará un mail a tu correo.</b>
-•	Si eres el ganador/a, tienes 24 horas para realizar el pago o de lo contrario, el producto vuelve a ser ofertado en nuestra plataforma.</b></p>
+<p>•	Si eres el ganador, te haremos llegar toda la información a tu correo electrónico.<br>
+•	En caso de que tu apuesta sea superada, se te notificará a tu correo electrónico.<br>
+•	Si eres el ganador/a, tienes 24 horas para realizar el pago o de lo contrario, el producto vuelve a ser ofertado en nuestra plataforma.</p></i>
 
       <p style="margin:16px 0;">
         <a href="${urlProducto}" 
@@ -62,7 +65,7 @@ function tplOfertaRegistrada({ nombreUsuario, monto, nombreProducto, urlProducto
       </p>
 
       <hr style="margin:16px 0;border:none;border-top:1px solid #eee;">
-      <small>Atentamente,</br>Equipo de WEG Subastas</small>
+      <small>Atentamente,<br>Equipo de WEG Subastas</small>
     </div>
   `;
   return { subject, html };
