@@ -28,7 +28,7 @@ function tplNuevoProducto({ nombreUsuario, nombreProducto, urlProducto }) {
   `;
   return { subject, html };
 }
-
+// <hr style="margin:16px 0;border:none;border-top:1px solid #005387;"></hr>
 /** 2) Aviso: subasta cancelada (a los ofertantes) */
 function tplSubastaCancelada({ nombreUsuario, nombreProducto }) {
   const subject = '❌ Subasta cancelada';
@@ -36,8 +36,9 @@ function tplSubastaCancelada({ nombreUsuario, nombreProducto }) {
     <div style="font-family:Arial,Helvetica,sans-serif;line-height:1.5;color:#222;">
       <p>Hola ${nombreUsuario},</p>
       <p>La subasta del producto <b>${nombreProducto}</b> fue cancelada.</p>
+
       <hr style="margin:16px 0;border:none;border-top:1px solid #eee;">
-      <small>Subastas WCH</small>
+      <small>Atentamente,<br>Equipo de WEG Subastas</small>
     </div>
   `;
   return { subject, html };
@@ -59,7 +60,7 @@ function tplOfertaRegistrada({ nombreUsuario, monto, nombreProducto, urlProducto
 
       <p style="margin:16px 0;">
         <a href="${urlProducto}" 
-           style="display:inline-block;padding:10px 16px;text-decoration:none;border-radius:6px;border:1px solid #0d6efd;">
+           style="display:inline-block;padding:10px 16px;text-decoration:none;border-radius:6px;border:1px solid #005387;">
           Ver producto
         </a>
       </p>
@@ -78,17 +79,18 @@ function tplHasSidoSuperado({ nombreUsuario, nombreProducto, urlProducto }) {
   const html = `
     <div style="font-family:Arial,Helvetica,sans-serif;line-height:1.5;color:#222;">
       <p>Hola ${nombreUsuario},</p>
-      <p>Otro participante ha superado tu oferta en el producto <b>${nombreProducto}</b>.</p>
+      <p>Otro usuario ha superado tu oferta en el producto <b>${nombreProducto}</b>.<br>
+      Ingresa y oferta para no perder tu lugar!</p>
 
       <p style="margin:16px 0;">
         <a href="${urlProducto}" 
-           style="display:inline-block;padding:10px 16px;text-decoration:none;border-radius:6px;border:1px solid #dc3545;">
+           style="display:inline-block;padding:10px 16px;text-decoration:none;border-radius:6px;border:1px solid #005387;">
           Ver producto
         </a>
       </p>
 
       <hr style="margin:16px 0;border:none;border-top:1px solid #eee;">
-      <small>Subastas WCH</small>
+      <small>Atentamente,<br>Equipo de WEG Subastas</small>
     </div>
   `;
   return { subject, html };
@@ -101,9 +103,14 @@ function tplGanasteSubasta({ nombreUsuario, nombreProducto }) {
   const html = `
     <div style="font-family:Arial,Helvetica,sans-serif;line-height:1.5;color:#222;">
       <p>Hola ${nombreUsuario},</p>
-      <p>Has ganado la subasta del producto <b>${nombreProducto}</b>.</p>
+      <p>Has ganado la subasta del producto <b>${nombreProducto}</b>. El equipo administrador se contactara contigo para indicar los pasos a seguir</p>
+            <br>
+            <i><p>Agradecemos considerar lo siguiente:</p>
+
+<p>•	Tienes 24 horas para realizar el pago o de lo contrario, el producto vuelve a ser ofertado en nuestra plataforma.</p></i>
+
       <hr style="margin:16px 0;border:none;border-top:1px solid #eee;">
-      <small>Subastas WCH</small>
+      <small>Atentamente,<br>Equipo de WEG Subastas</small>
     </div>
   `;
   return { subject, html };
@@ -116,8 +123,9 @@ function tplSubastaFinalizadaParaParticipante({ nombreUsuario, nombreProducto })
     <div style="font-family:Arial,Helvetica,sans-serif;line-height:1.5;color:#222;">
       <p>Hola ${nombreUsuario},</p>
       <p>La subasta del producto <b>${nombreProducto}</b> ha finalizado. Gracias por participar.</p>
+      
       <hr style="margin:16px 0;border:none;border-top:1px solid #eee;">
-      <small>Subastas WCH</small>
+      <small>Atentamente,<br>Equipo de WEG Subastas</small>
     </div>
   `;
   return { subject, html };
@@ -132,8 +140,9 @@ function tplSubastaFinalizadaAdmin({ nombreProducto, nombreGanador }) {
   const html = `
     <div style="font-family:Arial,Helvetica,sans-serif;line-height:1.5;color:#222;">
       <p>La subasta <b>${nombreProducto}</b> ha finalizado.${ganadorTxt}</p>
+
       <hr style="margin:16px 0;border:none;border-top:1px solid #eee;">
-      <small>Subastas WCH</small>
+      <small>Atentamente,<br>Equipo de WEG Subastas</small>
     </div>
   `;
   return { subject, html };

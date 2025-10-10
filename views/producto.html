@@ -11,17 +11,17 @@
 </head>
 
 <body class="bg-light">
-      <nav class="navbar navbar-expand-lg navbar-dark bg-custom">
-    <div class="container">
-      <a class="navbar-brand" href="home.html">Subastas WCH</a>
-      <span id="usuarioActivo" class="navbar-text text-light"></span>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-custom">
+        <div class="container">
+            <a class="navbar-brand" href="home.html">Subastas WCH</a>
+            <span id="usuarioActivo" class="navbar-text text-light"></span>
 
-      <div class="ms-auto">
-        <a href="/admin.html" id="btnAdmin" class="btn btn-warning d-none">Volver a panel admin</a>
-        <a href="/logout" class="btn btn-outline-light">Cerrar sesión</a>
-      </div>
-    </div>
-  </nav>
+            <div class="ms-auto">
+                <a href="/admin.html" id="btnAdmin" class="btn btn-warning d-none">Volver a panel admin</a>
+                <a href="/logout" class="btn btn-outline-light">Cerrar sesión</a>
+            </div>
+        </div>
+    </nav>
 
     <main class="container py-5">
         <a href="/home.html" class="btn btn-primary mb-3">&larr; Volver a Productos disponibles</a>
@@ -52,8 +52,8 @@
                     <div class="mb-3 d-flex justify-content-center">
                         <div class="w-50">
                             <label for="monto" class="form-label">Ingresa tu oferta ($):</label>
-                            <input type="number" id="monto" class="form-control" required inputmode="numeric" min="1"
-                                max="500000" placeholder="Ingresa aquí el monto de tu oferta." />
+                            <input type="number" id="monto" class="form-control" required inputmode="numeric"
+                                step="1000" min="1000" max="500000" placeholder="Ingresa aquí el monto de tu oferta." />
                         </div>
                     </div>
                     <button type="submit" class="btn btn-success" id="btnOfertar">
@@ -95,14 +95,21 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
+        let precioBase = 0;
+        let ofertaMax = 0;
+
         const params = new URLSearchParams(window.location.search);
         const id = params.get('id');
 
 
         async function cargarProducto() {
+
+
             try {
                 const res = await fetch(`/producto/${id}`);
                 const data = await res.json();
+
+                precioBase = Number(data.precio_producto) || 0;
 
                 document.getElementById('nombre').textContent = data.nombre_producto;
                 document.getElementById('descripcion').innerHTML = (data.descripcion_producto || '').replace(/\n/g, '<br>');
@@ -128,8 +135,6 @@
     </div>
   `;
                 });
-
-
 
                 // Calcular hora de finalización (fecha_publicacion + 24 horas)
                 // ✅ Usa fecha_fin o duracion_min del backend (alineado a SUBASTA_DURACION_MINUTOS)
@@ -161,19 +166,32 @@
             try {
                 const res = await fetch('/productos');
                 const productos = await res.json();
-                const prod = productos.find(p => p.id_producto == id);
-                // document.getElementById('oferta_maxima').textContent = (prod.oferta_maxima || 0).toLocaleString();
+                const prod = productos.find(p => String(p.id_producto) === String(id));
+
+                // oferta máxima (número)
+                ofertaMax = Number(prod?.oferta_maxima || 0);
+
+                // pinta texto en la vista
                 const ofertaSpan = document.getElementById('oferta_maxima');
-                if (!prod.oferta_maxima) {
+                if (!prod?.oferta_maxima) {
                     ofertaSpan.textContent = 'Nadie ha ofertado aún';
                 } else {
-                    ofertaSpan.textContent = `$${prod.oferta_maxima.toLocaleString()}`;
+                    ofertaSpan.textContent = `$${Number(prod.oferta_maxima).toLocaleString()}`;
                 }
 
+                // fija restricciones de input (múltiplos de 1000 y mínimo requerido)
+                const inp = document.getElementById('monto');
+                if (inp) {
+                    const minSiguiente = (ofertaMax > 0 ? ofertaMax : precioBase) + 1000;
+                    inp.step = '1000';
+                    inp.min = String(minSiguiente);
+                    inp.placeholder = `Mínimo $${minSiguiente.toLocaleString()} (de 1.000 en 1.000)`;
+                }
             } catch (e) {
                 console.error(e);
             }
         }
+
 
         async function verificarSiEsMaximoPostor() {
             try {
@@ -197,7 +215,8 @@
         document.getElementById('formOferta').addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const monto = parseFloat(document.getElementById('monto').value);
+            // ✅ entero “seguro”
+            const monto = Math.trunc(Number(document.getElementById('monto').value));
             const btn = document.getElementById('btnOfertar');
             const spinner = document.getElementById('spinner');
             const msg = document.getElementById('mensaje');
@@ -207,19 +226,41 @@
             msg.textContent = '';
             msg.classList.remove('text-danger', 'text-success');
 
+            const minSiguiente = (ofertaMax > 0 ? ofertaMax : precioBase) + 1000;
+
+            if (!Number.isFinite(monto) || monto <= 0) {
+                msg.textContent = 'Monto inválido.';
+                msg.classList.add('text-danger');
+                btn.disabled = false; spinner.classList.add('d-none');
+                return;
+            }
+            if (monto % 1000 !== 0) {
+                msg.textContent = 'Las ofertas deben ser en múltiplos de $1.000.';
+                msg.classList.add('text-danger');
+                btn.disabled = false; spinner.classList.add('d-none');
+                return;
+            }
+            if (monto < minSiguiente) {
+                msg.textContent = `Debes ofertar al menos $${minSiguiente.toLocaleString()}.`;
+                msg.classList.add('text-danger');
+                btn.disabled = false; spinner.classList.add('d-none');
+                return;
+            }
+
             try {
                 const res = await fetch(`/producto/${id}/ofertar`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ monto })
                 });
-
                 const result = await res.json();
 
                 if (res.ok) {
                     msg.textContent = 'Oferta registrada con éxito.';
                     msg.classList.add('text-success');
                     document.getElementById('monto').value = '';
+
+                    // 🔄 refresca ofertaMax y mínimos del input
                     await cargarOfertaMaxima();
                 } else {
                     msg.textContent = result.message || 'Error al ofertar.';
@@ -234,6 +275,7 @@
                 spinner.classList.add('d-none');
             }
         });
+
 
 
 

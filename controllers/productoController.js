@@ -555,6 +555,7 @@ const productoController = {
           WHERE o.id_producto = @id_producto
           ORDER BY o.monto_oferta DESC
         `);
+
       // 🧠 Bloquear si el usuario actual ya tiene la oferta más alta
       const anteriorUsuario = anteriorResult.recordset[0];
       if (anteriorUsuario && anteriorUsuario.id_usuario === id_usuario) {
@@ -563,15 +564,24 @@ const productoController = {
         });
       }
 
-
       const ofertaMaxima = anteriorResult.recordset[0]?.monto_oferta || 0;
 
-      if (ofertaMaxima === 0 && Number(monto) <= Number(producto.precio_producto)) {
-        return res.status(400).json({ message: 'La oferta inicial debe superar el precio base del producto.' });
+      // ✅ Reglas de incrementos en miles
+      const montoNum = Math.trunc(Number(monto));
+      if (!Number.isFinite(montoNum) || montoNum <= 0) {
+        return res.status(400).json({ message: 'Monto inválido.' });
       }
-      if (Number(monto) <= Number(ofertaMaxima)) {
-        return res.status(400).json({ message: 'Oferta muy baja' });
+      if (montoNum % 1000 !== 0) {
+        return res.status(400).json({ message: 'Las ofertas deben ser en múltiplos de $1.000.' });
       }
+
+      const minRequerido = (ofertaMaxima > 0 ? Number(ofertaMaxima) : Number(producto.precio_producto)) + 1000;
+      if (montoNum < minRequerido) {
+        return res.status(400).json({
+          message: `Debes ofertar al menos $${minRequerido.toLocaleString()}.`
+        });
+      }
+
 
       // const anteriorUsuario = anteriorResult.recordset[0];
 
