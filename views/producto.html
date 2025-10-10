@@ -164,6 +164,24 @@
             }
         }
 
+        async function verificarSiEsMaximoPostor() {
+            try {
+                const res = await fetch(`/productos`);
+                const productos = await res.json();
+                const prod = productos.find(p => p.id_producto == id);
+                const usuarioActual = sessionStorage.getItem('usuario_id'); // asegúrate que tu login lo guarde
+                if (prod && prod.oferta_maxima && prod.id_usuario_maximo === Number(usuarioActual)) {
+                    const btn = document.getElementById('btnOfertar');
+                    btn.disabled = true;
+                    const msg = document.getElementById('mensaje');
+                    msg.textContent = 'La oferta más alta ya es tuya.';
+                    msg.classList.add('text-success');
+                }
+            } catch (e) {
+                console.error('Error al verificar postor máximo:', e);
+            }
+        }
+
 
         document.getElementById('formOferta').addEventListener('submit', async (e) => {
             e.preventDefault();

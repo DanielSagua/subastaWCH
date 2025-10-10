@@ -555,6 +555,14 @@ const productoController = {
           WHERE o.id_producto = @id_producto
           ORDER BY o.monto_oferta DESC
         `);
+      // 🧠 Bloquear si el usuario actual ya tiene la oferta más alta
+      const anteriorUsuario = anteriorResult.recordset[0];
+      if (anteriorUsuario && anteriorUsuario.id_usuario === id_usuario) {
+        return res.status(400).json({
+          message: 'La oferta más alta ya es tuya. No puedes ofertar nuevamente hasta que otro usuario te supere.'
+        });
+      }
+
 
       const ofertaMaxima = anteriorResult.recordset[0]?.monto_oferta || 0;
 
@@ -565,7 +573,7 @@ const productoController = {
         return res.status(400).json({ message: 'Oferta muy baja' });
       }
 
-      const anteriorUsuario = anteriorResult.recordset[0];
+      // const anteriorUsuario = anteriorResult.recordset[0];
 
       // Insertar nueva oferta
       await pool.request()
