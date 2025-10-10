@@ -149,43 +149,39 @@ async function cerrarSubastaYNotificar(pool, ctx, id_producto) {
 
 const productoController = {
 
-  // Reemplaza tu listarActivos por este
   listarActivos: async (req, res) => {
     try {
       const pool = await db;
 
-      // Buscar subastas vencidas según .env que aún no estén finalizadas
-      const vencidas = await pool.request()
-        .input('duracion', sql.Int, DURACION_MIN)
-        .query(`
-        SELECT id_producto
-        FROM Productos
-        WHERE finalizada = 0
-          AND DATEADD(MINUTE, @duracion, fecha_publicacion_producto) <= GETDATE()
-      `);
+      // ⏰ 1) Buscar subastas vencidas (fin = 20:00 del día siguiente a la publicación)
+      const vencidas = await pool.request().query(`
+      SELECT id_producto
+      FROM Productos
+      WHERE finalizada = 0
+        AND GETDATE() >= DATEADD(HOUR, 20, CAST(DATEADD(DAY, 1, CAST(fecha_publicacion_producto AS date)) AS datetime))
+    `);
 
-      // Cerrar y notificar cada una
+      // 2) Cerrar y notificar cada una
       const baseUrl = `${req.protocol}://${req.get('host')}`;
-      // Cerrar y notificar cada una
       for (const row of vencidas.recordset) {
         await cerrarSubastaYNotificar(pool, baseUrl, row.id_producto);
       }
 
-
-      // Listar activos con datos para el contador del front
-      const result = await pool.request()
-        .input('duracion', sql.Int, DURACION_MIN)
-        .query(`
-        SELECT 
-          p.*,
-          (SELECT MAX(monto_oferta) FROM Ofertas WHERE id_producto = p.id_producto) AS oferta_maxima,
-          @duracion AS duracion_min,
-          DATEADD(MINUTE, @duracion, p.fecha_publicacion_producto) AS fecha_fin,
-          DATEDIFF(SECOND, GETDATE(), DATEADD(MINUTE, @duracion, p.fecha_publicacion_producto)) AS remaining_seconds
-        FROM Productos p
-        WHERE p.finalizada = 0
-        ORDER BY p.fecha_publicacion_producto DESC
-      `);
+      // 3) Listar activos con fecha_fin calculada (20:00 del día siguiente) y remaining_seconds
+      const result = await pool.request().query(`
+      SELECT 
+        p.*,
+        (SELECT MAX(monto_oferta) FROM Ofertas WHERE id_producto = p.id_producto) AS oferta_maxima,
+        fecha_fin = DATEADD(HOUR, 20, CAST(DATEADD(DAY, 1, CAST(p.fecha_publicacion_producto AS date)) AS datetime)),
+        remaining_seconds = DATEDIFF(
+          SECOND, 
+          GETDATE(),
+          DATEADD(HOUR, 20, CAST(DATEADD(DAY, 1, CAST(p.fecha_publicacion_producto AS date)) AS datetime))
+        )
+      FROM Productos p
+      WHERE p.finalizada = 0
+      ORDER BY p.fecha_publicacion_producto DESC
+    `);
 
       return res.json(result.recordset);
     } catch (error) {
@@ -195,42 +191,51 @@ const productoController = {
   },
 
 
+  // Comentado el 09102025
   // listarActivos: async (req, res) => {
   //   try {
   //     const pool = await db;
 
-  //     // ✅ Finalizar por duración desde .env
-  //     await pool.request()
+  //     // Buscar subastas vencidas según .env que aún no estén finalizadas
+  //     const vencidas = await pool.request()
   //       .input('duracion', sql.Int, DURACION_MIN)
   //       .query(`
-  //         UPDATE Productos
-  //         SET finalizada = 1
-  //         WHERE finalizada = 0
-  //           AND DATEADD(MINUTE, @duracion, fecha_publicacion_producto) <= GETDATE()
-  //       `);
+  //       SELECT id_producto
+  //       FROM Productos
+  //       WHERE finalizada = 0
+  //         AND DATEADD(MINUTE, @duracion, fecha_publicacion_producto) <= GETDATE()
+  //     `);
 
-  //     // Listar activos
+  //     // Cerrar y notificar cada una
+  //     const baseUrl = `${req.protocol}://${req.get('host')}`;
+  //     // Cerrar y notificar cada una
+  //     for (const row of vencidas.recordset) {
+  //       await cerrarSubastaYNotificar(pool, baseUrl, row.id_producto);
+  //     }
+
+
+  //     // Listar activos con datos para el contador del front
   //     const result = await pool.request()
   //       .input('duracion', sql.Int, DURACION_MIN)
   //       .query(`
-  //   SELECT 
-  //     p.*,
-  //     (SELECT MAX(monto_oferta) FROM Ofertas WHERE id_producto = p.id_producto) AS oferta_maxima,
-  //     @duracion AS duracion_min,
-  //     DATEADD(MINUTE, @duracion, p.fecha_publicacion_producto) AS fecha_fin,
-  //     DATEDIFF(SECOND, GETDATE(), DATEADD(MINUTE, @duracion, p.fecha_publicacion_producto)) AS remaining_seconds
-  //   FROM Productos p
-  //   WHERE p.finalizada = 0
-  //   ORDER BY p.fecha_publicacion_producto DESC
-  // `);
+  //       SELECT 
+  //         p.*,
+  //         (SELECT MAX(monto_oferta) FROM Ofertas WHERE id_producto = p.id_producto) AS oferta_maxima,
+  //         @duracion AS duracion_min,
+  //         DATEADD(MINUTE, @duracion, p.fecha_publicacion_producto) AS fecha_fin,
+  //         DATEDIFF(SECOND, GETDATE(), DATEADD(MINUTE, @duracion, p.fecha_publicacion_producto)) AS remaining_seconds
+  //       FROM Productos p
+  //       WHERE p.finalizada = 0
+  //       ORDER BY p.fecha_publicacion_producto DESC
+  //     `);
 
-
-  //     res.json(result.recordset);
+  //     return res.json(result.recordset);
   //   } catch (error) {
   //     console.error('Error al listar productos activos:', error);
-  //     res.status(500).json({ message: 'Error al obtener productos activos' });
+  //     if (!res.headersSent) return res.status(500).json({ message: 'Error al obtener productos activos' });
   //   }
   // },
+
 
   listarTodos: async (req, res) => {
     try {
@@ -253,18 +258,35 @@ const productoController = {
     const { id } = req.params;
     try {
       const pool = await db;
+
       const result = await pool.request()
         .input('id', sql.Int, id)
-        .input('duracion', sql.Int, DURACION_MIN)
         .query(`
-        SELECT 
-          p.*,
-          @duracion AS duracion_min,
-          DATEADD(MINUTE, @duracion, p.fecha_publicacion_producto) AS fecha_fin,
-          DATEDIFF(SECOND, GETDATE(), DATEADD(MINUTE, @duracion, p.fecha_publicacion_producto)) AS remaining_seconds
-        FROM Productos p
-        WHERE p.id_producto = @id
-      `);
+    SELECT 
+      p.*,
+      fecha_fin = DATEADD(HOUR, 20, CAST(DATEADD(DAY, 1, CAST(p.fecha_publicacion_producto AS date)) AS datetime)),
+      remaining_seconds = DATEDIFF(
+        SECOND, 
+        GETDATE(),
+        DATEADD(HOUR, 20, CAST(DATEADD(DAY, 1, CAST(p.fecha_publicacion_producto AS date)) AS datetime))
+      )
+    FROM Productos p
+    WHERE p.id_producto = @id
+  `);
+
+      // comentado el 09102025
+      // const result = await pool.request()
+      //   .input('id', sql.Int, id)
+      //   .input('duracion', sql.Int, DURACION_MIN)
+      //   .query(`
+      //   SELECT 
+      //     p.*,
+      //     @duracion AS duracion_min,
+      //     DATEADD(MINUTE, @duracion, p.fecha_publicacion_producto) AS fecha_fin,
+      //     DATEDIFF(SECOND, GETDATE(), DATEADD(MINUTE, @duracion, p.fecha_publicacion_producto)) AS remaining_seconds
+      //   FROM Productos p
+      //   WHERE p.id_producto = @id
+      // `);
 
       const producto = result.recordset[0];
       if (!producto) {
@@ -480,24 +502,42 @@ const productoController = {
 
     try {
       const pool = await db;
-
-      // ✅ Validación de tiempo en SQL con minutos desde .env
       const prodRes = await pool.request()
         .input('id_producto', sql.Int, id_producto)
-        .input('duracion', sql.Int, DURACION_MIN)
         .query(`
-          SELECT 
-            nombre_producto,
-            precio_producto,
-            fecha_publicacion_producto,
-            finalizada,
-            expirada = CASE 
-              WHEN DATEADD(MINUTE, @duracion, fecha_publicacion_producto) <= GETDATE() THEN 1 
-              ELSE 0 
-            END
-          FROM Productos
-          WHERE id_producto = @id_producto
-        `);
+    SELECT 
+      nombre_producto,
+      precio_producto,
+      fecha_publicacion_producto,
+      finalizada,
+      fecha_fin = DATEADD(HOUR, 20, CAST(DATEADD(DAY, 1, CAST(fecha_publicacion_producto AS date)) AS datetime)),
+      expirada = CASE 
+        WHEN GETDATE() >= DATEADD(HOUR, 20, CAST(DATEADD(DAY, 1, CAST(fecha_publicacion_producto AS date)) AS datetime)) THEN 1 
+        ELSE 0 
+      END
+    FROM Productos
+    WHERE id_producto = @id_producto
+  `);
+
+
+
+      // ✅ Validación de tiempo en SQL con minutos desde .env 09102025
+      // const prodRes = await pool.request()
+      //   .input('id_producto', sql.Int, id_producto)
+      //   .input('duracion', sql.Int, DURACION_MIN)
+      //   .query(`
+      //     SELECT 
+      //       nombre_producto,
+      //       precio_producto,
+      //       fecha_publicacion_producto,
+      //       finalizada,
+      //       expirada = CASE 
+      //         WHEN DATEADD(MINUTE, @duracion, fecha_publicacion_producto) <= GETDATE() THEN 1 
+      //         ELSE 0 
+      //       END
+      //     FROM Productos
+      //     WHERE id_producto = @id_producto
+      //   `);
 
       const producto = prodRes.recordset[0];
       if (!producto) return res.status(404).json({ message: 'Producto no encontrado' });

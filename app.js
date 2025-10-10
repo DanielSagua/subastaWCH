@@ -102,14 +102,25 @@ app.get('/', (req, res) => res.redirect('/login.html'));
 async function cerrarExpiradasJob() {
   try {
     const pool = await db;
-    const vencidas = await pool.request()
-      .input('duracion', sql.Int, DURACION_MIN)
-      .query(`
-        SELECT id_producto
-        FROM Productos
-        WHERE finalizada = 0
-          AND DATEADD(MINUTE, @duracion, fecha_publicacion_producto) <= GETDATE()
-      `);
+
+    const vencidas = await pool.request().query(`
+  SELECT id_producto
+  FROM Productos
+  WHERE finalizada = 0
+    AND GETDATE() >= DATEADD(HOUR, 20, CAST(DATEADD(DAY, 1, CAST(fecha_publicacion_producto AS date)) AS datetime))
+`);
+
+
+
+    // 09102025
+    // const vencidas = await pool.request()
+    //   .input('duracion', sql.Int, DURACION_MIN)
+    //   .query(`
+    //     SELECT id_producto
+    //     FROM Productos
+    //     WHERE finalizada = 0
+    //       AND DATEADD(MINUTE, @duracion, fecha_publicacion_producto) <= GETDATE()
+    //   `);
 
     for (const row of vencidas.recordset) {
       await cerrarSubastaYNotificar(pool, BASE_URL, row.id_producto);

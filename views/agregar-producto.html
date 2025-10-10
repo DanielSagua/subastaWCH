@@ -23,7 +23,7 @@
       </div>
       <div class="mb-3">
         <label for="descripcion" class="form-label">Descripción</label>
-        <textarea id="descripcion" name="descripcion" class="form-control"></textarea>
+        <textarea id="descripcion" name="descripcion" class="form-control" required></textarea>
       </div>
       <div class="mb-3">
         <label for="precio" class="form-label">Precio base ($)</label>
@@ -45,7 +45,13 @@
           <option value="imagen4">Imagen 4</option>
         </select>
       </div>
-      <button type="submit" class="btn btn-success">Agregar</button>
+      <!-- <button type="submit" class="btn btn-success">Agregar</button> -->
+      <button type="submit" class="btn btn-success" id="btnAgregar">
+        <span id="spinnerAgregar" class="spinner-border spinner-border-sm d-none me-2" role="status"
+          aria-hidden="true"></span>
+        Agregar
+      </button>
+
       <a href="/gestion-productos.html" class="btn btn-secondary ms-2">Volver</a>
 
     </form>
@@ -76,6 +82,49 @@
       e.preventDefault();
 
       const form = document.getElementById('formAgregar');
+      const formData = new FormData(form);
+      const btn = document.getElementById('btnAgregar');
+      const spinner = document.getElementById('spinnerAgregar');
+      const mensaje = document.getElementById('mensaje');
+
+      // UI bloqueada
+      btn.disabled = true;
+      spinner.classList.remove('d-none');
+      mensaje.textContent = '';
+
+      try {
+        const res = await fetch('/productos', { method: 'POST', body: formData });
+        const data = await res.json();
+
+        if (res.ok) {
+          mensaje.classList.remove('text-danger');
+          mensaje.classList.add('text-success');
+          mensaje.textContent = 'Producto agregado exitosamente.';
+          form.reset();
+        } else {
+          mensaje.classList.remove('text-success');
+          mensaje.classList.add('text-danger');
+          mensaje.textContent = data.message || 'Error al agregar producto';
+        }
+      } catch (err) {
+        console.error(err);
+        mensaje.classList.remove('text-success');
+        mensaje.classList.add('text-danger');
+        mensaje.textContent = 'Error al conectar con el servidor';
+      } finally {
+        // UI desbloqueada
+        btn.disabled = false;
+        spinner.classList.add('d-none');
+      }
+    });
+  </script>
+
+
+  <!-- <script>
+    document.getElementById('formAgregar').addEventListener('submit', async function (e) {
+      e.preventDefault();
+
+      const form = document.getElementById('formAgregar');
       const formData = new FormData(form); // ✅ Esto incluye archivos
 
       try {
@@ -96,7 +145,7 @@
         alert('Error al conectar con el servidor');
       }
     });
-  </script>
+  </script> -->
 
 </body>
 
