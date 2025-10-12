@@ -763,25 +763,69 @@ const productoController = {
 };
 
 // dentro del objeto o asignado después:
+// async function listarOfertasPorProducto(req, res) {
+//   const { id } = req.params;
+//   try {
+//     const pool = await db;
+//     const rs = await pool.request()
+//       .input('id', sql.Int, id)
+//       .query(`
+//         SELECT o.id_oferta, o.id_usuario, u.nombre_usuario, o.monto_oferta, o.fecha_oferta
+//         FROM Ofertas o
+//         JOIN Usuarios u ON u.id_usuario = o.id_usuario
+//         WHERE o.id_producto = @id
+//         ORDER BY o.fecha_oferta DESC, o.monto_oferta DESC
+//       `);
+//     return res.json(rs.recordset);
+//   } catch (e) {
+//     console.error('Error al listar ofertas:', e);
+//     if (!res.headersSent) return res.status(500).json({ message: 'Error al listar ofertas' });
+//   }
+// }
+
+// === Historial de ofertas por producto (paginado, recientes primero) ===
 async function listarOfertasPorProducto(req, res) {
   const { id } = req.params;
+  const page = parseInt(req.query.page || "1", 10);
+  const limit = 20;
+  const offset = (page - 1) * limit;
+
   try {
     const pool = await db;
+
+    const totalResult = await pool.request()
+      .input('id', sql.Int, id)
+      .query('SELECT COUNT(*) AS total FROM Ofertas WHERE id_producto = @id');
+    const total = totalResult.recordset[0].total;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+
     const rs = await pool.request()
       .input('id', sql.Int, id)
+      .input('limit', sql.Int, limit)
+      .input('offset', sql.Int, offset)
       .query(`
-        SELECT o.id_oferta, o.id_usuario, u.nombre_usuario, o.monto_oferta, o.fecha_oferta
+        SELECT 
+          o.id_oferta,
+          o.id_usuario,
+          u.nombre_usuario,
+          o.monto_oferta,
+          o.fecha_oferta
         FROM Ofertas o
         JOIN Usuarios u ON u.id_usuario = o.id_usuario
         WHERE o.id_producto = @id
-        ORDER BY o.fecha_oferta DESC, o.monto_oferta DESC
+        ORDER BY o.fecha_oferta DESC, o.id_oferta DESC
+        OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY
       `);
-    return res.json(rs.recordset);
+
+    return res.json({ page, total, totalPages, data: rs.recordset });
   } catch (e) {
     console.error('Error al listar ofertas:', e);
     if (!res.headersSent) return res.status(500).json({ message: 'Error al listar ofertas' });
   }
 }
+
+
+
 
 
 module.exports = {
