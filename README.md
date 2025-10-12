@@ -1,90 +1,135 @@
+# ⚖️ Subastas WCH – Sistema de Subastas Internas
 
-# 🛍️ Subastas Internas - Aplicación Web
-
-Sistema web de subastas internas de productos en desuso para una empresa. Cada empleado puede ofertar por productos publicados por un administrador.
+Aplicación web completa para la gestión de **subastas internas de productos en desuso** dentro de una empresa.  
+Los colaboradores pueden ofertar en tiempo real, mientras los administradores gestionan productos, usuarios y el estado de las subastas.
 
 ---
 
 ## ⚙️ Tecnologías utilizadas
 
-- Node.js + Express
-- HTML5, CSS3, Bootstrap 5.3
-- JavaScript (cliente y servidor)
-- SQL Server
-- Multer (carga de imágenes)
-- Bcryptjs (encriptación de contraseñas)
-- Nodemailer (recuperación por correo)
-- Express-session + Connect-flash (sesiones y mensajes)
-- Dotenv (variables de entorno)
+- **Node.js + Express**
+- **HTML5, CSS3, Bootstrap 5.3**
+- **JavaScript** (cliente y servidor)
+- **SQL Server**
+- **Multer** (carga de imágenes)
+- **Bcryptjs** (encriptación de contraseñas)
+- **Nodemailer** (envío de correos automáticos y recuperación de contraseñas)
+- **Dotenv** (configuración por entorno)
+- **Express-session** (control de sesiones y roles)
+- **JWT** (para recuperación de contraseñas segura)
+- **CORS** (opcional, para pruebas locales)
+- **SetInterval Job interno** (control automático del cierre de subastas)
 
 ---
 
 ## 📁 Estructura del proyecto
 
 ```
-subastas-app/
+subastaWCH/
 ├── app.js
 ├── .env
 ├── /controllers
-│   └── authController.js
-│   └── productoController.js
-│   └── usuarioController.js
+│   ├── authController.js
+│   ├── productoController.js
+│   ├── usuarioController.js
+│   └── emails/
+│       └── builders.js
 ├── /routes
-│   └── auth.js
-│   └── productos.js
+│   ├── auth.js
+│   ├── productos.js
 │   └── usuarios.js
-├── /views
-│   └── *.html (vistas del sistema)
 ├── /public
-│   ├── /uploads (imágenes)
-│   ├── /css
-│   ├── /js
+│   ├── /uploads/ (imágenes de productos)
+│   ├── /css/
+│   ├── /js/
+│   ├── /images/ (favicon y logos)
+│   └── *.html (vistas)
 ├── /db
 │   └── sql.js
+├── /emails
+│   └── builders.js
+└── README.md
 ```
 
 ---
 
-## 🔐 Funcionalidades
+## 🔐 Autenticación y seguridad
 
-### 🔒 Autenticación
-- Login con correo y contraseña
-- Contraseñas encriptadas (bcrypt)
-- Recuperación de contraseña por correo electrónico
-- Cambio de contraseña seguro vía token
-
-### 👤 Roles
-- Usuario: puede ver productos y ofertar
-- Administrador: puede gestionar usuarios y productos
-
-### 📦 Productos
-- Crear, editar y eliminar productos
-- Subir imagen por producto (opcional)
-- Vista previa de imagen
-- Eliminación automática de la imagen al editar o borrar el producto
-- Registro de ofertas por usuario
-- Visualización de la oferta máxima
+- Inicio de sesión con **correo y contraseña**.
+- Contraseñas cifradas con **bcryptjs**.
+- Recuperación de contraseña mediante **correo con token JWT**.
+- Validación de **requisitos mínimos de contraseña**:
+  - mínimo 8 caracteres  
+  - opcional: letras mayúsculas, minúsculas y números
+- Control de **sesiones y roles**:
+  - Usuario: puede ver y ofertar.
+  - Administrador: puede gestionar usuarios y productos.
 
 ---
 
-## ⚠️ Requisitos previos
+## 📦 Funcionalidades
 
-- Node.js v16+ y npm
-- SQL Server (local o remoto)
-- Configurar archivo `.env`
+### 👤 Usuarios
+- Alta, edición y baja lógica (estado activo/inactivo).
+- Cambio y validación de contraseñas.
+- Eliminación con confirmación y validación de dependencias.
+- Solo los usuarios activos reciben correos automáticos.
 
-### 📄 Ejemplo `.env`:
+### 🛍️ Productos
+- Crear, editar y eliminar productos con múltiples imágenes.
+- Subida de imágenes con **Multer**.
+- Eliminación automática de imágenes antiguas.
+- Ofertas mínimas en incrementos de **$1.000**.
+- Prevención de ofertas duplicadas (si ya tienes la oferta más alta).
+- Las descripciones usan un 70% del ancho del contenedor.
+
+### ⏰ Subastas automáticas
+- Cada subasta finaliza automáticamente **a las 20:00 del día siguiente** a su publicación.
+- El cierre se maneja con un **setInterval interno en el servidor**.
+- En el cierre se:
+  - marca la subasta como finalizada,
+  - determina el ganador,
+  - envían correos automáticos (ganador, participantes, administrador).
+
+### ✉️ Correos automáticos
+- Nuevo producto publicado (solo a usuarios activos).
+- Nueva oferta registrada.
+- Aviso a ofertante superado.
+- Subasta finalizada (ganador y participantes).
+- Subasta cancelada.
+- Todos los correos se controlan con `ENVIAR_CORREOS=true/false` en `.env`.
+
+### 💼 Panel de administración
+- Gestión de usuarios y productos.
+- Visualización del **historial de ofertas por producto**.
+- Ordenamiento de ofertas (más recientes primero) con paginación de 20 registros.
+- Buscador en tiempo real (por nombre de producto o usuario).
+
+---
+
+## ⚙️ Variables de entorno
+
+Ejemplo `.env`:
 
 ```env
-DB_USER=Usuario de BD
+# Base de datos
+DB_USER=sa
 DB_PASSWORD=tu_password
-DB_SERVER=localhost
-DB_DATABASE=SubastasDB
+DB_SERVER=192.168.1.25
+DB_DATABASE=subastaWCH
 DB_ENCRYPT=false
 
+# Correo
 EMAIL_USER=tu_correo@gmail.com
 EMAIL_PASS=clave_aplicacion_gmail
-JWT_SECRET=una_clave_segura
+
+# Configuración del sistema
+ENVIAR_CORREOS=true
+JWT_SECRET=clave_segura
+SUBASTA_DURACION_MINUTOS=1440
+
+# Horario de cierre automático
+SUBASTA_HORA_CIERRE=20:00
 ```
 
 ---
@@ -93,8 +138,8 @@ JWT_SECRET=una_clave_segura
 
 ```bash
 # Clona el proyecto
-git clone https://github.com/tuusuario/subastas-app.git
-cd subastas-app
+git clone https://github.com/tuusuario/subastaWCH.git
+cd subastaWCH
 
 # Instala dependencias
 npm install
@@ -103,7 +148,7 @@ npm install
 node app.js
 ```
 
-Accede en tu navegador a:
+Luego abre en tu navegador:
 
 ```
 http://localhost:3000/login.html
@@ -111,24 +156,33 @@ http://localhost:3000/login.html
 
 ---
 
-## 🛠 Scripts útiles
+## 🛠️ Scripts útiles
 
-- `node app.js` → ejecuta el servidor
-
----
-
-
-
----
-
-## 📌 Notas adicionales
-
-- Todas las imágenes se guardan en `/public/uploads/`.
-- Las vistas están protegidas por sesión y rol.
-- No se utilizan motores de plantillas, todo es HTML estático.
+| Comando              | Descripción |
+|----------------------|-------------|
+| `node app.js`        | Inicia el servidor |
+| `npm install`        | Instala dependencias |
+| `.env`               | Define parámetros de base de datos, correo y horarios |
+| `public/uploads/`    | Carpeta para imágenes de productos |
+| `public/images/`     | Logos y favicon |
 
 ---
 
-## 📃 Licencia
+## 💡 Notas adicionales
 
-Este proyecto es de uso académico y privado. Puedes adaptarlo libremente para otros fines internos.
+- Las vistas se sirven directamente desde **Express** (no se usa Live Server).
+- Las rutas están protegidas según el rol del usuario.
+- Las contraseñas nuevas se validan tanto en **frontend** como en **backend**.
+- Todas las imágenes se eliminan del sistema al borrar o reemplazar un producto.
+- Los usuarios inactivos **no reciben correos**.
+
+---
+
+## 📄 Licencia
+
+Proyecto de uso **académico y privado**.  
+Puede ser reutilizado con fines internos o educativos, mencionando la autoría original.
+
+---
+
+© 2025 — Desarrollado por **Daniel Sagua**
