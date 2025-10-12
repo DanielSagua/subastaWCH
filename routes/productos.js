@@ -3,10 +3,15 @@ const router = express.Router();
 const productoController = require('../controllers/productoController');
 const { upload } = require('../controllers/productoController');
 const { isAdmin, isAuthenticated } = require('../middlewares/authMiddleware');
+const { listarOfertasPorProducto } = require('../controllers/productoController');
+
 
 // Rutas públicas / protegidas para usuarios
 // Solo productos activos (para home)
 router.get('/productos/activos', productoController.listarActivos);
+
+router.get('/producto/:id/ofertas', productoController.listarOfertasPorProducto);
+
 
 // Todos los productos (para gestión)
 router.get('/productos', productoController.listarTodos);

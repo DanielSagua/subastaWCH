@@ -27,6 +27,12 @@ app.use(session({
 }));
 app.use(flash());
 
+//Ofertas de productos
+const { listarOfertasPorProducto } = require('./controllers/productoController');
+app.get('/producto/:id/ofertas', listarOfertasPorProducto);
+
+
+
 // Archivos públicos y vistas
 app.use(express.static(path.join(__dirname, 'public')));
 app.set('views', path.join(__dirname, 'views'));

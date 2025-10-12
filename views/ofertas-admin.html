@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Historial de ofertas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="images/favicon.ico">
+</head>
+
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark px-3">
+        <a class="navbar-brand" href="admin.html">Subastas WCH - Admin</a>
+    </nav>
+
+    <div class="container py-4">
+        <h3 class="text-center mb-4">Historial de ofertas por producto</h3>
+
+        <div class="row justify-content-center mb-4">
+            <div class="col-md-8">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-8">
+                                <label for="selectProducto" class="form-label">Selecciona un producto</label>
+                                <select id="selectProducto" class="form-select">
+                                    <option value="">Cargando productos...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <button id="btnVerOfertas" class="btn btn-primary" disabled>Ver ofertas</button>
+                            </div>
+                        </div>
+                        <div id="infoProducto" class="mt-3 text-muted small"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle" id="tablaOfertas">
+                        <thead>
+                            <tr>
+                                <th>Usuario</th>
+                                <th class="text-end">Monto</th>
+                                <th>Fecha</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="3" class="text-muted">Selecciona un producto para ver sus ofertas.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mt-3">
+            <a href="admin.html" class="btn btn-outline-secondary">Volver</a>
+        </div>
+    </div>
+
+    <script>
+        const sel = document.getElementById('selectProducto');
+        const btn = document.getElementById('btnVerOfertas');
+        const tbody = document.querySelector('#tablaOfertas tbody');
+        const info = document.getElementById('infoProducto');
+
+        async function cargarProductos() {
+            try {
+                const res = await fetch('/productos');
+                const productos = await res.json();
+
+                sel.innerHTML = '<option value="">Seleccione...</option>';
+                productos.forEach(p => {
+                    const opt = document.createElement('option');
+                    opt.value = p.id_producto;
+                    opt.textContent = `${p.id_producto} — ${p.nombre_producto}`;
+                    sel.appendChild(opt);
+                });
+
+                sel.addEventListener('change', () => {
+                    btn.disabled = !sel.value;
+                    info.textContent = '';
+                    tbody.innerHTML = '<tr><td colspan="3" class="text-muted">Presiona "Ver ofertas"…</td></tr>';
+                });
+
+            } catch (e) {
+                console.error(e);
+                sel.innerHTML = '<option value="">Error al cargar productos</option>';
+            }
+        }
+
+        async function cargarOfertas(id) {
+            try {
+                // Info del producto (nombre y precio)
+                const resProds = await fetch('/productos');
+                const productos = await resProds.json();
+                const prod = productos.find(p => String(p.id_producto) === String(id));
+                if (prod) {
+                    info.textContent = `Producto: ${prod.nombre_producto} — Precio base: $${Number(prod.precio_producto).toLocaleString('es-CL')}`;
+                } else {
+                    info.textContent = '';
+                }
+
+                // Ofertas
+                const res = await fetch(`/producto/${id}/ofertas`);
+                const ofertas = await res.json();
+                tbody.innerHTML = '';
+
+                if (!ofertas.length) {
+                    tbody.innerHTML = '<tr><td colspan="3" class="text-muted">Sin ofertas aún</td></tr>';
+                    return;
+                }
+
+                for (const o of ofertas) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+            <td>${o.nombre_usuario}</td>
+            <td class="text-end">$${Number(o.monto_oferta).toLocaleString('es-CL')}</td>
+            <td>${new Date(o.fecha_oferta).toLocaleString('es-CL')}</td>`;
+                    tbody.appendChild(tr);
+                }
+            } catch (e) {
+                console.error(e);
+                tbody.innerHTML = '<tr><td colspan="3" class="text-danger">Error al cargar ofertas</td></tr>';
+            }
+        }
+
+        btn.addEventListener('click', () => {
+            if (sel.value) cargarOfertas(sel.value);
+        });
+
+        cargarProductos();
+    </script>
+</body>
+
+</html>
