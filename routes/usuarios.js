@@ -7,6 +7,7 @@ router.get('/usuarios', isAdmin, usuarioController.listarUsuarios);
 router.get('/usuarios/:id', isAdmin, usuarioController.obtenerUsuario);
 router.post('/usuarios', isAdmin, usuarioController.agregarUsuario);
 router.put('/usuarios/:id', isAdmin, usuarioController.editarUsuario);
+router.delete('/usuarios/:id', usuarioController.eliminarUsuario);
 
 // Ruta pública para obtener al usuario autenticado
 router.get('/usuario/perfil', (req, res) => {

@@ -19,7 +19,7 @@ const app = express();
 // Middlewares
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
-
+app.use(express.json());
 app.use(session({
   secret: 'subastas-secret',
   resave: false,
@@ -90,6 +90,8 @@ app.get('/editar-producto.html', isAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'editar-producto.html'));
 });
 
+const usuariosRouter = require('./routes/usuarios');
+app.use('/', usuariosRouter); // 👈 así /usuarios/:id llega al router
 
 // 🧩 Rutas API
 const authRoutes = require('./routes/auth');

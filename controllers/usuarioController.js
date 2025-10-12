@@ -72,7 +72,42 @@ const usuarioController = {
       console.error('Error al editar usuario:', error);
       res.status(500).json({ message: 'Error al actualizar usuario' });
     }
-  }
-};
+  },
+eliminarUsuario: async (req, res) => {
+    const { id } = req.params;
+    try {
+      const pool = await db;
 
-module.exports = usuarioController;
+      // ¿existe?
+      const existe = await pool.request()
+        .input('id', sql.Int, id)
+        .query('SELECT id_usuario, estado FROM Usuarios WHERE id_usuario = @id');
+
+      if (existe.recordset.length === 0) {
+        return res.status(404).json({ message: 'Usuario no encontrado' });
+      }
+
+      // Soft delete: desactivar usuario
+      await pool.request()
+        .input('id', sql.Int, id)
+        .query(`
+        UPDATE Usuarios
+        SET estado = 0
+        WHERE id_usuario = @id
+      `);
+
+      return res.json({ message: 'Usuario eliminado (desactivado)' });
+    } catch (err) {
+      console.error('Error al eliminar usuario:', err);
+      if (!res.headersSent) return res.status(500).json({ message: 'Error al eliminar usuario' });
+    }
+
+  }
+
+}
+
+
+
+module.exports = {
+  ...usuarioController,
+};

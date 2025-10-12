@@ -16,6 +16,18 @@ const transporter = nodemailer.createTransport({
   }
 });
 
+// helper (colócalo arriba en authController.js)
+function validarPassword(pwd) {
+  if (typeof pwd !== 'string') return 'Contraseña inválida';
+  if (pwd.length < 8) return 'La contraseña debe tener al menos 8 caracteres';
+  // opcional: complejidad
+  if (!/[A-Z]/.test(pwd)) return 'Debe tener al menos una mayúscula';
+  if (!/[a-z]/.test(pwd)) return 'Debe tener al menos una minúscula';
+  if (!/[0-9]/.test(pwd)) return 'Debe tener al menos un número';
+  return null;
+}
+
+
 const authController = {
   login: async (req, res) => {
     const { correo, password } = req.body;
@@ -98,13 +110,57 @@ const authController = {
   },
 
 
+  // cambiarPassword: async (req, res) => {
+  //   const { token } = req.params;
+  //   const { nuevaPassword } = req.body;
+
+
+  //   try {
+  //     const decoded = jwt.verify(token, JWT_SECRET);
+  //     const hashed = await bcrypt.hash(nuevaPassword, 10);
+
+  //     const pool = await db;
+  //     await pool.request()
+  //       .input('id', sql.Int, decoded.id)
+  //       .input('password', sql.NVarChar, hashed)
+  //       .query('UPDATE Usuarios SET password = @password WHERE id_usuario = @id');
+
+  //     res.json({ message: 'Contraseña actualizada con éxito' });
+  //   } catch (error) {
+  //     console.error('Error al cambiar contraseña:', error);
+  //     res.status(400).json({ message: 'Token inválido o expirado' });
+  //   }
+  // }
+
   cambiarPassword: async (req, res) => {
     const { token } = req.params;
-    const { nuevaPassword } = req.body;
+    // acepta distintos nombres de campo por si el front envía otro
+    const nuevaPassword =
+      req.body.nuevaPassword ??
+      req.body.nuevaContrasena ??
+      req.body.passwordNueva ??
+      req.body.password;
 
+    // ✅ Validación básica
+    if (!nuevaPassword) {
+      return res.status(400).json({ message: 'Debes ingresar la nueva contraseña.' });
+    }
+    if (typeof nuevaPassword !== 'string' || nuevaPassword.length < 8) {
+      return res.status(400).json({
+        message: 'La contraseña debe tener al menos 8 caracteres.'
+      });
+    }
+    // Reglas opcionales de complejidad (puedes descomentar):
+    if (!/[A-Z]/.test(nuevaPassword))
+      return res.status(400).json({ message: 'Debe contener al menos una letra mayúscula.' });
+    if (!/[a-z]/.test(nuevaPassword))
+      return res.status(400).json({ message: 'Debe contener al menos una letra minúscula.' });
+    if (!/[0-9]/.test(nuevaPassword))
+      return res.status(400).json({ message: 'Debe contener al menos un número.' });
 
     try {
       const decoded = jwt.verify(token, JWT_SECRET);
+
       const hashed = await bcrypt.hash(nuevaPassword, 10);
 
       const pool = await db;
@@ -119,7 +175,6 @@ const authController = {
       res.status(400).json({ message: 'Token inválido o expirado' });
     }
   }
-
 
 
 };
