@@ -21,7 +21,23 @@
         <a href="/agregar-usuario.html" class="btn btn-success">Agregar usuario</a>
         <a href="/admin.html" class="btn btn-secondary">Volver</a>
       </div>
+    </div>
 
+    <!-- 🔎 Buscador + filtro de estado -->
+    <div class="row g-2 align-items-center mb-3">
+      <div class="col-md-6">
+        <input id="buscadorUsuarios" type="text" class="form-control" placeholder="Buscar por nombre de usuario…">
+      </div>
+      <div class="col-md-3">
+        <select id="filtroEstado" class="form-select">
+          <option value="todos">Todos</option>
+          <option value="activos">Solo activos</option>
+          <option value="inactivos">Solo inactivos</option>
+        </select>
+      </div>
+      <div class="col-md-3 text-md-end">
+        <small class="text-muted">Resultados: <span id="countResultadosUsuarios">0</span></small>
+      </div>
     </div>
 
     <table class="table table-bordered table-hover shadow-sm">
@@ -39,35 +55,165 @@
         <!-- Datos dinámicos -->
       </tbody>
     </table>
+
+    <!-- 🔢 Paginación -->
+    <div class="d-flex justify-content-center mt-3" id="paginacionUsuarios"></div>
   </div>
 
   <script>
+    // ====== Estado y utilidades ======
+    let usuariosCacheOriginal = [];
+    let usuariosCacheFiltrada = [];
+    let currentPage = 1;
+    const pageSize = 20;
+
+    // estado actual de filtros
+    let qActual = '';
+    let estadoActual = 'todos'; // 'todos' | 'activos' | 'inactivos'
+
+    function debounce(fn, wait = 200) {
+      let t;
+      return (...args) => {
+        clearTimeout(t);
+        t = setTimeout(() => fn(...args), wait);
+      };
+    }
+
+    function norm(s) {
+      return (s || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+
+    function ordenarPorNombre(arr) {
+      return arr.slice().sort((a, b) => norm(a.nombre_usuario).localeCompare(norm(b.nombre_usuario)));
+    }
+
+    // ====== Render de tabla y paginación ======
+    function renderTablaUsuarios(page = 1) {
+      const tabla = document.getElementById('tablaUsuarios');
+      tabla.innerHTML = '';
+
+      const total = usuariosCacheFiltrada.length;
+      const totalPages = Math.max(1, Math.ceil(total / pageSize));
+      currentPage = Math.min(Math.max(1, page), totalPages);
+
+      const start = (currentPage - 1) * pageSize;
+      const end = start + pageSize;
+      const slice = usuariosCacheFiltrada.slice(start, end);
+
+      if (slice.length === 0) {
+        tabla.innerHTML = `<tr><td colspan="6" class="text-center text-muted">Sin resultados</td></tr>`;
+        document.getElementById('paginacionUsuarios').innerHTML = '';
+        return;
+      }
+
+      slice.forEach(u => {
+        const fila = document.createElement('tr');
+        fila.innerHTML = `
+          <td>${u.id_usuario}</td>
+          <td>${u.nombre_usuario}</td>
+          <td>${u.correo}</td>
+          <td>${u.tipo_usuario}</td>
+          <td>${u.estado ? 'Activo' : 'Inactivo'}</td>
+          <td>
+            <a href="/editar-usuario.html?id=${u.id_usuario}" class="btn btn-sm btn-warning">Editar</a>
+          </td>
+        `;
+        tabla.appendChild(fila);
+      });
+
+      renderPaginacionUsuarios(totalPages);
+    }
+
+    function renderPaginacionUsuarios(totalPages) {
+      const cont = document.getElementById('paginacionUsuarios');
+      cont.innerHTML = '';
+      if (totalPages <= 1) return;
+
+      const mkBtn = (label, page, active = false, disabled = false) => {
+        const b = document.createElement('button');
+        b.textContent = label;
+        b.className = `btn btn-sm ${active ? 'btn-primary' : 'btn-outline-primary'} me-1`;
+        b.disabled = disabled;
+        b.addEventListener('click', () => renderTablaUsuarios(page));
+        return b;
+      };
+
+      // « Anterior
+      cont.appendChild(mkBtn('«', currentPage - 1, false, currentPage === 1));
+
+      // Números (compacto)
+      const maxBtns = 8;
+      let start = Math.max(1, currentPage - Math.floor(maxBtns / 2));
+      let end = Math.min(totalPages, start + maxBtns - 1);
+      if (end - start + 1 < maxBtns) start = Math.max(1, end - maxBtns + 1);
+
+      for (let i = start; i <= end; i++) {
+        cont.appendChild(mkBtn(String(i), i, i === currentPage));
+      }
+
+      // Siguiente »
+      cont.appendChild(mkBtn('»', currentPage + 1, false, currentPage === totalPages));
+    }
+
+    // ====== Filtro combinado (buscador + estado) ======
+    function aplicarFiltros() {
+      const qn = norm(qActual);
+
+      let base = usuariosCacheOriginal;
+
+      // filtrar por estado
+      if (estadoActual === 'activos') {
+        base = base.filter(u => !!u.estado);
+      } else if (estadoActual === 'inactivos') {
+        base = base.filter(u => !u.estado);
+      }
+
+      // filtrar por texto (nombre)
+      if (qn) {
+        base = base.filter(u => norm(u.nombre_usuario).includes(qn));
+      }
+
+      usuariosCacheFiltrada = ordenarPorNombre(base);
+      document.getElementById('countResultadosUsuarios').textContent = usuariosCacheFiltrada.length;
+      renderTablaUsuarios(1);
+    }
+
+    // ====== Carga inicial ======
     async function cargarUsuarios() {
       try {
         const res = await fetch('/usuarios');
         const usuarios = await res.json();
-        const tabla = document.getElementById('tablaUsuarios');
-        tabla.innerHTML = '';
 
-        usuarios.forEach(u => {
-          const fila = document.createElement('tr');
-          fila.innerHTML = `
-            <td>${u.id_usuario}</td>
-            <td>${u.nombre_usuario}</td>
-            <td>${u.correo}</td>
-            <td>${u.tipo_usuario}</td>
-            <td>${u.estado ? 'Activo' : 'Inactivo'}</td>
-            <td>
-              <a href="/editar-usuario.html?id=${u.id_usuario}" class="btn btn-sm btn-warning">Editar</a>
-            </td>
-          `;
-          tabla.appendChild(fila);
-        });
+        usuariosCacheOriginal = usuarios.slice();
+        qActual = '';
+        estadoActual = 'todos';
+
+        aplicarFiltros(); // ordena + dibuja
       } catch (error) {
         console.error(error);
+        const tabla = document.getElementById('tablaUsuarios');
+        tabla.innerHTML = `<tr><td colspan="6" class="text-center text-danger">Error al cargar usuarios</td></tr>`;
       }
     }
 
+    // Eventos: buscador y filtro
+    const inputBuscar = document.getElementById('buscadorUsuarios');
+    if (inputBuscar) {
+      inputBuscar.addEventListener('input', debounce(e => {
+        qActual = e.target.value;
+        aplicarFiltros();
+      }, 200));
+    }
+
+    const selectEstado = document.getElementById('filtroEstado');
+    if (selectEstado) {
+      selectEstado.addEventListener('change', () => {
+        estadoActual = selectEstado.value; // 'todos'|'activos'|'inactivos'
+        aplicarFiltros();
+      });
+    }
+
+    // Init
     cargarUsuarios();
   </script>
 </body>

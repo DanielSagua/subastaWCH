@@ -50,51 +50,118 @@
 
 
   <script>
+    //     async function cargarProductos() {
+    //       try {
+    //         const res = await fetch('/productos/activos');
+
+    //         const productos = await res.json();
+
+    //         // Actualiza el contador del título
+    //         const badge = document.getElementById('badgeCount');
+    //         if (badge) badge.textContent = productos.length;
+
+
+    //         const contenedor = document.getElementById('contenedorProductos');
+    //         contenedor.innerHTML = '';
+
+    //         productos.forEach(p => {
+    //           const imagen = p[p.imagen_destacada] || 'test.webp';
+
+    //           const card = document.createElement('div');
+    //           card.className = 'col-md-4';
+    //           card.innerHTML = `
+    //   <div class="card card-altura-fija shadow">
+    //     <div class="card-body">
+    //       <img src="/uploads/${imagen}" class="img-fluid mb-3 img-cuadrada" alt="Producto"
+    //            style="cursor: pointer;" onclick="location.href='/producto.html?id=${p.id_producto}'" />
+    //       <h5 class="card-title texto-azul-primario">${p.nombre_producto}</h5>
+    //       <p class="card-text descripcion-con-saltos">${(p.descripcion_producto || '')
+    //               .split(' ')
+    //               .slice(0, 30)
+    //               .join(' ') + ((p.descripcion_producto?.split(' ').length > 30) ? '…' : '')}</p>
+    //       <p><strong>Precio base:</strong> $${p.precio_producto.toLocaleString()}</p>
+    // <p><strong>Oferta máxima:</strong> ${p.oferta_maxima ? `${p.oferta_maxima.toLocaleString()}` : 'Nadie ha ofertado aún'
+    //             }</p>
+
+    //       <a href="/producto.html?id=${p.id_producto}" class="btn btn-sm btn-outline-primary">Ver más</a>
+    //     </div>
+    //   </div>
+    // `;
+
+    //           contenedor.appendChild(card);
+    //         });
+    //       } catch (error) {
+    //         console.error(error);
+    //         document.getElementById('contenedorProductos').innerHTML = '<p>Error al cargar productos.</p>';
+    //       }
+    //     }
+
     async function cargarProductos() {
       try {
         const res = await fetch('/productos/activos');
-
         const productos = await res.json();
 
-        // Actualiza el contador del título
+        // ✅ Actualiza el contador del título
         const badge = document.getElementById('badgeCount');
         if (badge) badge.textContent = productos.length;
-
 
         const contenedor = document.getElementById('contenedorProductos');
         contenedor.innerHTML = '';
 
+        // ✅ Si no hay productos activos, muestra mensaje
+        if (productos.length === 0) {
+          contenedor.innerHTML = `
+        <div class="col-12">
+          <div class="card border-0 shadow-sm text-center p-5">
+            <div class="mb-2" style="font-size:2.5rem;">🛎️</div>
+            <h5 class="mb-2">No hay productos activos por ahora</h5>
+            <p class="text-muted mb-0">
+              En cuanto subamos un producto te avisaremos por correo.
+            </p>
+          </div>
+        </div>
+      `;
+          return; // salir de la función
+        }
+
+        // ✅ Renderiza productos si existen
         productos.forEach(p => {
           const imagen = p[p.imagen_destacada] || 'test.webp';
 
           const card = document.createElement('div');
           card.className = 'col-md-4';
           card.innerHTML = `
-  <div class="card card-altura-fija shadow">
-    <div class="card-body">
-      <img src="/uploads/${imagen}" class="img-fluid mb-3 img-cuadrada" alt="Producto"
-           style="cursor: pointer;" onclick="location.href='/producto.html?id=${p.id_producto}'" />
-      <h5 class="card-title texto-azul-primario">${p.nombre_producto}</h5>
-      <p class="card-text descripcion-con-saltos">${(p.descripcion_producto || '')
+        <div class="card card-altura-fija shadow">
+          <div class="card-body">
+            <img src="/uploads/${imagen}" class="img-fluid mb-3 img-cuadrada" alt="Producto"
+                 style="cursor: pointer;" onclick="location.href='/producto.html?id=${p.id_producto}'" />
+            <h5 class="card-title texto-azul-primario">${p.nombre_producto}</h5>
+            <p class="card-text descripcion-con-saltos">
+              ${(p.descripcion_producto || '')
               .split(' ')
               .slice(0, 30)
-              .join(' ') + ((p.descripcion_producto?.split(' ').length > 30) ? '…' : '')}</p>
-      <p><strong>Precio base:</strong> $${p.precio_producto.toLocaleString()}</p>
-<p><strong>Oferta máxima:</strong> ${p.oferta_maxima ? `${p.oferta_maxima.toLocaleString()}` : 'Nadie ha ofertado aún'
+              .join(' ') + ((p.descripcion_producto?.split(' ').length > 30) ? '…' : '')}
+            </p>
+            <p><strong>Precio base:</strong> $${p.precio_producto.toLocaleString()}</p>
+            <p><strong>Oferta máxima:</strong> ${p.oferta_maxima
+              ? `$${p.oferta_maxima.toLocaleString()}`
+              : 'Nadie ha ofertado aún'
             }</p>
 
-      <a href="/producto.html?id=${p.id_producto}" class="btn btn-sm btn-outline-primary">Ver más</a>
-    </div>
-  </div>
-`;
+            <a href="/producto.html?id=${p.id_producto}" class="btn btn-sm btn-outline-primary">Ver más</a>
+          </div>
+        </div>
+      `;
 
           contenedor.appendChild(card);
         });
       } catch (error) {
         console.error(error);
-        document.getElementById('contenedorProductos').innerHTML = '<p>Error al cargar productos.</p>';
+        document.getElementById('contenedorProductos').innerHTML =
+          '<p class="text-danger text-center">Error al cargar productos.</p>';
       }
     }
+
 
     cargarProductos();
 

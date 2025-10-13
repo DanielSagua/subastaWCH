@@ -88,8 +88,24 @@ const authController = {
       await transporter.sendMail({
         from: `"Subastas" <${process.env.EMAIL_USER}>`,
         to: correo,
-        subject: 'Recuperación de contraseña',
-        html: `<p>Haz clic en el siguiente enlace para cambiar tu contraseña:</p><a href="${url}">${url}</a>`
+        subject: 'Recuperación de contraseña en Subasta',
+        html: `<p>Haz clic en el siguiente enlace para cambiar tu contraseña:</p>
+
+
+              <p style="margin:16px 0;">
+        <a href="${url}" 
+           style="display:inline-block;padding:10px 16px;text-decoration:none;border-radius:6px;border:1px solid #005387;">
+          Cambia tu contraseña
+        </a>
+      </p><br>
+      <p><i><b>- Este enlace expira en 10 minutos.<br>
+      - Si no solicitaste cambiar tu contraseña omite este mensaje.</b></i></p>
+
+
+        
+              <hr style="margin:16px 0;border:none;border-top:1px solid #eee;">
+      <small>Atentamente,<br>Equipo de WEG Subastas</small>
+      `
       });
 
       res.json({ message: 'Correo enviado con instrucciones' });
