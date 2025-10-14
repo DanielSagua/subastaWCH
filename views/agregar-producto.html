@@ -7,6 +7,25 @@
   <title>Agregar Producto</title>
   <link rel="icon" type="image/x-icon" href="images/favicon.ico">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .thumb {
+      width: 100%;
+      height: 160px;
+      object-fit: cover;
+      border-radius: .5rem;
+    }
+
+    .thumb-card {
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+    }
+
+    .thumb-card.active {
+      border-color: var(--bs-primary);
+      box-shadow: 0 0 0 .2rem rgba(13, 110, 253, .25);
+    }
+  </style>
 </head>
 
 <body>
@@ -22,63 +41,136 @@
         <label for="nombre" class="form-label">Nombre del producto</label>
         <input type="text" id="nombre" name="nombre" class="form-control" required />
       </div>
+
       <div class="mb-3">
         <label for="descripcion" class="form-label">Descripción</label>
         <textarea id="descripcion" name="descripcion" class="form-control" required></textarea>
       </div>
+
       <div class="mb-3">
         <label for="precio" class="form-label">Precio base ($)</label>
         <input type="number" id="precio" name="precio" class="form-control" required min="0" />
       </div>
-      <div class="mb-3">
-        <label for="imagen" class="form-label">Imagen del producto</label>
-        <input type="file" name="imagenes" multiple accept="image/*" class="form-control" />
-        <!-- <input type="file" id="imagen" name="imagen" class="form-control" accept="image/*" /> -->
-      </div>
-      <div class="mb-3">
-        <label for="imagen_destacada" class="form-label">Imagen destacada</label>
-        <select name="imagen_destacada" id="imagen_destacada" class="form-select">
-          <option value="">Seleccionar una imagen</option>
-          <option value="imagen">Principal</option>
-          <option value="imagen1">Imagen 1</option>
-          <option value="imagen2">Imagen 2</option>
-          <option value="imagen3">Imagen 3</option>
-          <option value="imagen4">Imagen 4</option>
-        </select>
-      </div>
-      <!-- <button type="submit" class="btn btn-success">Agregar</button> -->
-      <button type="submit" class="btn btn-success" id="btnAgregar">
-        <span id="spinnerAgregar" class="spinner-border spinner-border-sm d-none me-2" role="status"
-          aria-hidden="true"></span>
-        Agregar
-      </button>
 
-      <a href="/gestion-productos.html" class="btn btn-secondary ms-2">Volver</a>
+      <!-- Selección y previsualización de imágenes -->
+      <div class="mb-2">
+        <label class="form-label">Imágenes del producto</label>
+        <input type="file" id="inputImgs" name="imagenes" multiple accept="image/*" class="form-control" />
+        <div class="form-text">Selecciona hasta 5 imágenes. Haz clic en una miniatura para marcarla como destacada.
+        </div>
+      </div>
 
+      <!-- Hidden que tu backend usa para saber cuál es la destacada -->
+      <input type="hidden" id="imagen_destacada" name="imagen_destacada" value="">
+
+      <!-- Grid de previews -->
+      <div id="previewGrid" class="row g-3 mt-1"></div>
+
+      <div class="mt-4">
+        <button type="submit" class="btn btn-success" id="btnAgregar">
+          <span id="spinnerAgregar" class="spinner-border spinner-border-sm d-none me-2" role="status"
+            aria-hidden="true"></span>
+          Agregar
+        </button>
+        <a href="/gestion-productos.html" class="btn btn-secondary ms-2">Volver</a>
+      </div>
     </form>
-
-
-    <!-- <form id="formAgregar">
-      <div class="mb-3">
-        <label for="nombre" class="form-label">Nombre del producto</label>
-        <input type="text" id="nombre" name="nombre" class="form-control" required />
-      </div>
-      <div class="mb-3">
-        <label for="descripcion" class="form-label">Descripción</label>
-        <textarea id="descripcion" name="descripcion" class="form-control"></textarea>
-      </div>
-      <div class="mb-3">
-        <label for="precio" class="form-label">Precio base ($)</label>
-        <input type="number" id="precio" name="precio" class="form-control" required min="0" />
-      </div>
-      <button type="submit" class="btn btn-success">Agregar</button>
-      <a href="/gestion-productos.html" class="btn btn-secondary">Cancelar</a>
-    </form> -->
 
     <div id="mensaje" class="mt-3 text-success"></div>
   </div>
 
   <script>
+    const inputImgs = document.getElementById('inputImgs');
+    const previewGrid = document.getElementById('previewGrid');
+    const hiddenDestacada = document.getElementById('imagen_destacada');
+
+    function slotKeyByIndex(i) {
+      // 0 -> 'imagen', 1 -> 'imagen1', 2 -> 'imagen2', ...
+      return i === 0 ? 'imagen' : ('imagen' + i);
+    }
+
+    function clearPreviews() {
+      previewGrid.innerHTML = '';
+    }
+
+    function renderPreviews(files) {
+      clearPreviews();
+      const max = Math.min(files.length, 5);
+      if (files.length > 5) {
+        // Si seleccionan más de 5, solo mostramos/mandamos los primeros 5 (el input aún los tiene todos, pero el backend tomará los primeros)
+        // Puedes mostrar un aviso si quieres:
+        console.warn('Se mostrarán solo las primeras 5 imágenes.');
+      }
+
+      // Por defecto, marcamos como destacada la primera (si existe)
+      if (max > 0) {
+        hiddenDestacada.value = slotKeyByIndex(0);
+      } else {
+        hiddenDestacada.value = '';
+      }
+
+      for (let i = 0; i < max; i++) {
+        const file = files[i];
+        const col = document.createElement('div');
+        col.className = 'col-6 col-md-4 col-lg-3';
+
+        const card = document.createElement('div');
+        card.className = 'thumb-card card p-2';
+        card.dataset.index = String(i);
+
+        const img = document.createElement('img');
+        img.className = 'thumb';
+        img.alt = `Imagen ${i + 1}`;
+        img.src = URL.createObjectURL(file);
+
+        const body = document.createElement('div');
+        body.className = 'card-body p-2 text-center';
+
+        const label = document.createElement('div');
+        label.className = 'small';
+        label.textContent = (i === 0) ? 'Destacada (por defecto)' : `Imagen ${i + 1}`;
+
+        body.appendChild(label);
+        card.appendChild(img);
+        card.appendChild(body);
+        col.appendChild(card);
+        previewGrid.appendChild(col);
+      }
+
+      // Activar la clase "active" en la destacada por defecto
+      const firstCard = previewGrid.querySelector('.thumb-card');
+      if (firstCard) firstCard.classList.add('active');
+    }
+
+    // Click para marcar destacada
+    previewGrid.addEventListener('click', (e) => {
+      const card = e.target.closest('.thumb-card');
+      if (!card) return;
+
+      // Remueve la selección anterior
+      previewGrid.querySelectorAll('.thumb-card.active').forEach(c => c.classList.remove('active'));
+
+      // Selecciona esta
+      card.classList.add('active');
+
+      // Actualiza el hidden según el índice de esta miniatura
+      const idx = parseInt(card.dataset.index, 10);
+      hiddenDestacada.value = slotKeyByIndex(idx);
+    });
+
+    inputImgs.addEventListener('change', (e) => {
+      const files = Array.from(e.target.files || []);
+      if (!files.length) {
+        clearPreviews();
+        hiddenDestacada.value = '';
+        return;
+      }
+
+      // Renderiza previews (primeras 5)
+      renderPreviews(files);
+    });
+
+    // Envío con bloqueo/spinner como ya tenías
     document.getElementById('formAgregar').addEventListener('submit', async function (e) {
       e.preventDefault();
 
@@ -88,66 +180,35 @@
       const spinner = document.getElementById('spinnerAgregar');
       const mensaje = document.getElementById('mensaje');
 
-      // UI bloqueada
       btn.disabled = true;
       spinner.classList.remove('d-none');
       mensaje.textContent = '';
+      mensaje.classList.remove('text-danger', 'text-success');
 
       try {
         const res = await fetch('/productos', { method: 'POST', body: formData });
         const data = await res.json();
 
         if (res.ok) {
-          mensaje.classList.remove('text-danger');
           mensaje.classList.add('text-success');
           mensaje.textContent = 'Producto agregado exitosamente.';
           form.reset();
+          clearPreviews();
+          hiddenDestacada.value = '';
         } else {
-          mensaje.classList.remove('text-success');
           mensaje.classList.add('text-danger');
           mensaje.textContent = data.message || 'Error al agregar producto';
         }
       } catch (err) {
         console.error(err);
-        mensaje.classList.remove('text-success');
         mensaje.classList.add('text-danger');
         mensaje.textContent = 'Error al conectar con el servidor';
       } finally {
-        // UI desbloqueada
         btn.disabled = false;
         spinner.classList.add('d-none');
       }
     });
   </script>
-
-
-  <!-- <script>
-    document.getElementById('formAgregar').addEventListener('submit', async function (e) {
-      e.preventDefault();
-
-      const form = document.getElementById('formAgregar');
-      const formData = new FormData(form); // ✅ Esto incluye archivos
-
-      try {
-        const res = await fetch('/productos', {
-          method: 'POST',
-          body: formData // ✅ No establezcas Content-Type, el navegador lo hace por ti
-        });
-
-        const data = await res.json();
-        if (res.ok) {
-          document.getElementById('mensaje').textContent = 'Producto agregado exitosamente.';
-          form.reset();
-        } else {
-          alert(data.message || 'Error al agregar producto');
-        }
-      } catch (err) {
-        console.error(err);
-        alert('Error al conectar con el servidor');
-      }
-    });
-  </script> -->
-
 </body>
 
 </html>
