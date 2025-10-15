@@ -39,17 +39,19 @@
     <form id="formAgregar" enctype="multipart/form-data" method="POST" action="/productos">
       <div class="mb-3">
         <label for="nombre" class="form-label">Nombre del producto</label>
-        <input type="text" id="nombre" name="nombre" class="form-control" required />
+        <input type="text" id="nombre" name="nombre" class="form-control" required placeholder="Escribe el nombre del producto." />
       </div>
 
       <div class="mb-3">
         <label for="descripcion" class="form-label">Descripción</label>
-        <textarea id="descripcion" name="descripcion" class="form-control" required></textarea>
+        <textarea id="descripcion" name="descripcion" class="form-control" required placeholder="Escribe aqui la descripcion del producto."></textarea>
       </div>
 
       <div class="mb-3">
         <label for="precio" class="form-label">Precio base ($)</label>
-        <input type="number" id="precio" name="precio" class="form-control" required min="0" />
+        <input type="number" id="precio" name="precio" class="form-control" required min="0" step="1000"
+          inputmode="numeric" pattern="\d*" placeholder="Múltiplos de $1.000" />
+
       </div>
 
       <!-- Selección y previsualización de imágenes -->
@@ -142,21 +144,50 @@
       if (firstCard) firstCard.classList.add('active');
     }
 
-    // Click para marcar destacada
+    // Click para marcar destacada OLD
+    function updateThumbLabels() {
+      // Re-etiqueta según posición visual
+      const cards = previewGrid.querySelectorAll('.thumb-card');
+      cards.forEach((c, i) => {
+        const label = c.querySelector('.card-body .small');
+        if (!label) return;
+        label.textContent = (i === 0) ? 'Destacada' : `Imagen ${i + 1}`;
+      });
+    }
+
+    // ✅ Click para marcar imagen destacada y moverla al inicio visual
     previewGrid.addEventListener('click', (e) => {
       const card = e.target.closest('.thumb-card');
       if (!card) return;
 
-      // Remueve la selección anterior
+      // Índice ORIGINAL del archivo (no cambia aunque movamos el DOM)
+      const idxOriginal = Number(card.dataset.index);
+      if (Number.isNaN(idxOriginal)) return;
+
+      // Actualiza hidden con el slot esperado por el backend
+      hiddenDestacada.value = slotKeyByIndex(idxOriginal);
+
+      // Quitar "active" previo
       previewGrid.querySelectorAll('.thumb-card.active').forEach(c => c.classList.remove('active'));
 
-      // Selecciona esta
-      card.classList.add('active');
+      // Mover visualmente el contenedor de la card al inicio
+      // (la card está dentro de su columna .col-*, movemos esa columna)
+      const col = card.closest('[class*="col-"]') || card.parentElement;
+      if (col && col.parentElement === previewGrid) {
+        previewGrid.insertBefore(col, previewGrid.firstChild);
+      }
 
-      // Actualiza el hidden según el índice de esta miniatura
-      const idx = parseInt(card.dataset.index, 10);
-      hiddenDestacada.value = slotKeyByIndex(idx);
+      // Marcar la primera (recién movida) como activa
+      const firstCard = previewGrid.querySelector('.thumb-card');
+      if (firstCard) firstCard.classList.add('active');
+
+      // Actualizar etiquetas (Destacada / Imagen N)
+      updateThumbLabels();
+
+      // Debug opcional
+      // console.log('📌 Destacada (slot backend):', hiddenDestacada.value);
     });
+
 
     inputImgs.addEventListener('change', (e) => {
       const files = Array.from(e.target.files || []);
@@ -186,6 +217,25 @@
       mensaje.classList.remove('text-danger', 'text-success');
 
       try {
+
+        // ✅ Validación: precio múltiplo de 1000
+        const precioVal = Number(formData.get('precio'));
+        if (!Number.isFinite(precioVal) || precioVal <= 0) {
+          mensaje.classList.add('text-danger');
+          mensaje.textContent = 'Ingresa un precio válido.';
+          btn.disabled = false;
+          spinner.classList.add('d-none');
+          return;
+        }
+        if (precioVal % 1000 !== 0) {
+          mensaje.classList.add('text-danger');
+          mensaje.textContent = 'El precio base debe ser un múltiplo de $1.000.';
+          btn.disabled = false;
+          spinner.classList.add('d-none');
+          return;
+        }
+
+
         const res = await fetch('/productos', { method: 'POST', body: formData });
         const data = await res.json();
 
@@ -208,6 +258,15 @@
         spinner.classList.add('d-none');
       }
     });
+   
+    //Ayuda en vivo al escribir
+    document.getElementById('precio').addEventListener('input', (e) => {
+      const v = Number(e.target.value);
+      if (!Number.isFinite(v)) return;
+      // Solo feedback visual en el placeholder/validación nativa; no forzamos el valor
+      e.target.setCustomValidity((v % 1000 === 0 || v === 0) ? '' : 'Debe ser múltiplo de 1000');
+    });
+
   </script>
 </body>
 

@@ -96,17 +96,21 @@ function tplHasSidoSuperado({ nombreUsuario, nombreProducto, urlProducto }) {
   return { subject, html };
 }
 
-
 /** 5) Aviso: ganaste la subasta (al ganador) */
 function tplGanasteSubasta({ nombreUsuario, nombreProducto }) {
   const subject = '🎉 Has ganado la subasta';
   const html = `
     <div style="font-family:Arial,Helvetica,sans-serif;line-height:1.5;color:#222;">
       <p>Hola ${nombreUsuario},</p>
-      <p>Has ganado la subasta del producto <b>${nombreProducto}</b>. El equipo administrador se contactara contigo para indicar los pasos a seguir</p>
+      <p>Has ganado la subasta del producto <b>${nombreProducto}</b>.</p>
             <br>
             <i><p>Agradecemos considerar lo siguiente:</p>
-
+<p>•	Debes realizar la transferencia a la siguiente cuenta:<br>
+ <b> - Banco: BCI<br>
+  - Nombre: WEG Chile SpA<br>
+  - Rut: 99.528.050-7<br>
+   - Correo: comprobante@wch-ops.cl</b>
+</p>
 <p>•	Tienes 24 horas para realizar el pago o de lo contrario, el producto vuelve a ser ofertado en nuestra plataforma.</p></i>
 
       <hr style="margin:16px 0;border:none;border-top:1px solid #eee;">
