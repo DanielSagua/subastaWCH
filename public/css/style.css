@@ -122,14 +122,24 @@ main {
   box-shadow: 0 0.8rem 2rem rgba(0, 83, 135, 0.5) !important; /* sombra más intensa al hover */
 }
 
-/* === Sombras personalizadas para las tarjetas === */
+/* === Sombras personalizadas para las tarjetas 2 === */
 .card.shadow2 {
   /* sombra azul más grande y suave */
   box-shadow: 0 0.5rem 1.5rem rgba(0, 83, 135, 0.35) !important; /* usa --azul-primario con opacidad */
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
+/* === Sombras personalizadas para las tarjeta de login sin movimiento === */
+.card.shadow3 {
+  /* sombra azul más grande y suave */
+  box-shadow: 0 0.5rem 1.5rem rgba(0, 83, 135, 0.5) !important; /* usa --azul-primario con opacidad */
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
 
+.card.shadow3:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0.8rem 1rem rgba(0, 83, 255, 0.3) !important; /* sombra más intensa al hover */
+}
 
 /* === Estilo login personalizado === */
 
