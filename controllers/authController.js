@@ -4,17 +4,40 @@ const nodemailer = require('nodemailer');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const db = require('../db/sql');
+const BASE_URL = process.env.BASE_URL || `https://${process.env.HOSTNAME || 'subastaswch.wch-ops.cl'}`;
+
 
 // Secret para recuperar contraseña
 const JWT_SECRET = process.env.JWT_SECRET || 'clave_secreta_para_tokens';
 
+// const transporter = nodemailer.createTransport({
+//   service: 'gmail',
+//   auth: {
+//     user: process.env.EMAIL_USER,
+//     pass: process.env.EMAIL_PASS
+//   }
+// });
+
+// Remitente y SMTP desde .env (hosting)
+const FROM = process.env.EMAIL_FROM || `"Subastas WCH" <${process.env.SMTP_USER}>`;
+
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: process.env.SMTP_HOST,                     // p.ej. webmail.wch-ops.cl
+  port: parseInt(process.env.SMTP_PORT || '465', 10),
+  secure: String(process.env.SMTP_SECURE).toLowerCase() === 'true', // true=465, false=587
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS
   }
 });
+
+// (Opcional) Verificación en logs del servidor
+transporter.verify((err) => {
+  if (err) console.error('[SMTP][authController] ❌', err.message);
+  else console.log('[SMTP][authController] ✅ Conexión OK');
+});
+
+
 
 // helper (colócalo arriba en authController.js)
 function validarPassword(pwd) {
@@ -62,6 +85,60 @@ const authController = {
     res.redirect('/login.html');
   },
 
+  // recuperarPassword: async (req, res) => {
+  //   const { correo } = req.body;
+  //   try {
+  //     const pool = await db;
+  //     const result = await pool.request()
+  //       .input('correo', sql.NVarChar, correo)
+  //       .query('SELECT * FROM Usuarios WHERE correo = @correo');
+
+  //     const user = result.recordset[0];
+  //     if (!user) return res.status(404).json({ message: 'Correo no encontrado' });
+
+  //     const token = jwt.sign({ id: user.id_usuario }, JWT_SECRET, { expiresIn: '15m' });
+
+  //     const transporter = nodemailer.createTransport({
+  //       service: 'gmail',
+  //       auth: {
+  //         user: process.env.EMAIL_USER,
+  //         pass: process.env.EMAIL_PASS
+  //       }
+  //     });
+
+  //     const url = `http://${req.headers.host}/cambiar-password/${token}`;
+
+  //     await transporter.sendMail({
+  //       from: `"Subastas" <${process.env.EMAIL_USER}>`,
+  //       to: correo,
+  //       subject: 'Recuperación de contraseña en Subasta',
+  //       html: `<p>Haz clic en el siguiente enlace para cambiar tu contraseña:</p>
+
+
+  //             <p style="margin:16px 0;">
+  //       <a href="${url}" 
+  //          style="display:inline-block;padding:10px 16px;text-decoration:none;border-radius:6px;border:1px solid #005387;">
+  //         Cambia tu contraseña
+  //       </a>
+  //     </p><br>
+  //     <p><i><b>- Este enlace expira en 10 minutos.<br>
+  //     - Si no solicitaste cambiar tu contraseña omite este mensaje.</b></i></p>
+
+
+
+  //             <hr style="margin:16px 0;border:none;border-top:1px solid #eee;">
+  //     <small>Atentamente,<br>Equipo de WEG Subastas</small>
+  //     `
+  //     });
+
+  //     res.json({ message: 'Correo enviado con instrucciones' });
+  //   } catch (error) {
+  //     console.error('Error enviando correo:', error);
+  //     res.status(500).json({ message: 'Error al enviar correo' });
+  //   }
+  // },
+
+
   recuperarPassword: async (req, res) => {
     const { correo } = req.body;
     try {
@@ -75,36 +152,32 @@ const authController = {
 
       const token = jwt.sign({ id: user.id_usuario }, JWT_SECRET, { expiresIn: '15m' });
 
-      const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS
-        }
-      });
-
-      const url = `http://${req.headers.host}/cambiar-password/${token}`;
+      // Usa tu dominio BASE_URL en vez de req.headers.host (para https y dominio correcto)
+      const url = `${BASE_URL}/cambiar-password/${token}`;
 
       await transporter.sendMail({
-        from: `"Subastas" <${process.env.EMAIL_USER}>`,
+        from: FROM,                            // ⬅️ remitente del hosting
         to: correo,
-        subject: 'Recuperación de contraseña en Subasta',
-        html: `<p>Haz clic en el siguiente enlace para cambiar tu contraseña:</p>
+        subject: 'Recuperación de contraseña en Subastas WCH',
+        html: `
+        <div style="font-family:Arial,Helvetica,sans-serif;line-height:1.5;color:#222;">
+          <p>Hola ${user.nombre_usuario || ''},</p>
+          <p>Haz clic en el siguiente enlace para cambiar tu contraseña:</p>
 
+          <p style="margin:16px 0;">
+            <a href="${url}" 
+               style="display:inline-block;padding:10px 16px;text-decoration:none;border-radius:6px;border:1px solid #005387;">
+              Cambiar contraseña
+            </a>
+          </p>
 
-              <p style="margin:16px 0;">
-        <a href="${url}" 
-           style="display:inline-block;padding:10px 16px;text-decoration:none;border-radius:6px;border:1px solid #005387;">
-          Cambia tu contraseña
-        </a>
-      </p><br>
-      <p><i><b>- Este enlace expira en 10 minutos.<br>
-      - Si no solicitaste cambiar tu contraseña omite este mensaje.</b></i></p>
+          <p style="color:#555;font-size:0.95em;">
+            Este enlace expira en 15 minutos. Si no solicitaste cambiar tu contraseña, puedes ignorar este mensaje.
+          </p>
 
-
-        
-              <hr style="margin:16px 0;border:none;border-top:1px solid #eee;">
-      <small>Atentamente,<br>Equipo de WEG Subastas</small>
+          <hr style="margin:16px 0;border:none;border-top:1px solid #eee;">
+          <small>Atentamente,<br>Equipo de WEG Subastas</small>
+        </div>
       `
       });
 
@@ -114,6 +187,7 @@ const authController = {
       res.status(500).json({ message: 'Error al enviar correo' });
     }
   },
+
 
   mostrarFormularioCambio: (req, res) => {
     const { token } = req.params;

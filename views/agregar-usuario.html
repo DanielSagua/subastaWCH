@@ -36,27 +36,53 @@
           <option value="admin">Administrador</option>
         </select>
       </div>
-      <button type="submit" class="btn btn-success">Guardar</button>
+      <button type="submit" class="btn btn-success" id="btnGuardar">
+        <span id="spinner" class="spinner-border spinner-border-sm d-none me-2" role="status" aria-hidden="true"></span>
+        Guardar
+      </button>
+
       <a href="/gestion-usuarios.html" class="btn btn-secondary">Cancelar</a>
     </form>
     <div id="mensaje" class="mt-3 text-success"></div>
   </div>
 
   <script>
-
-    const { nuevaPassword } = req.body;
-    const errPwd = validarPassword(nuevaPassword);
-    if (errPwd) return res.status(400).json({ message: errPwd });
-    const hashed = await bcrypt.hash(nuevaPassword, 10);
-
+    // Validación mínima de contraseña (puedes fortalecerla si quieres)
+    function validarPassword(pwd) {
+      if (typeof pwd !== 'string') return 'Contraseña inválida.';
+      if (pwd.length < 8) return 'La contraseña debe tener al menos 8 caracteres.';
+      return null;
+    }
 
     document.getElementById('formUsuario').addEventListener('submit', async function (e) {
       e.preventDefault();
-      const nombre = document.getElementById('nombre').value;
-      const correo = document.getElementById('correo').value;
-      const rut = document.getElementById('rut').value;
+
+      const nombre = document.getElementById('nombre').value.trim();
+      const correo = document.getElementById('correo').value.trim();
+      const rut = document.getElementById('rut').value.trim();
       const password = document.getElementById('password').value;
       const tipo = document.getElementById('tipo').value;
+
+      const btn = document.getElementById('btnGuardar');   // debe existir en tu HTML
+      const spinner = document.getElementById('spinner');       // idem (spinner dentro del botón)
+      const msg = document.getElementById('mensaje');       // contenedor de mensajes
+
+      // Reset mensajes
+      if (msg) {
+        msg.textContent = '';
+        msg.classList.remove('text-danger', 'text-success');
+      }
+
+      // ✅ Validación de contraseña
+      const errPwd = validarPassword(password);
+      if (errPwd) {
+        if (msg) { msg.textContent = errPwd; msg.classList.add('text-danger'); }
+        return;
+      }
+
+      // Bloquear botón + mostrar spinner
+      if (btn) btn.disabled = true;
+      if (spinner) spinner.classList.remove('d-none');
 
       try {
         const res = await fetch('/usuarios', {
@@ -65,18 +91,24 @@
           body: JSON.stringify({ nombre, correo, rut, password, tipo })
         });
 
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
+
         if (res.ok) {
-          document.getElementById('mensaje').textContent = 'Usuario creado con éxito';
+          if (msg) { msg.textContent = 'Usuario creado con éxito.'; msg.classList.add('text-success'); }
           document.getElementById('formUsuario').reset();
         } else {
-          alert(data.message);
+          if (msg) { msg.textContent = data.message || 'Error al crear usuario.'; msg.classList.add('text-danger'); }
         }
       } catch (error) {
         console.error(error);
+        if (msg) { msg.textContent = 'Error de conexión al crear usuario.'; msg.classList.add('text-danger'); }
+      } finally {
+        if (btn) btn.disabled = false;
+        if (spinner) spinner.classList.add('d-none');
       }
     });
   </script>
+
 </body>
 
 </html>

@@ -50,30 +50,79 @@ const usuarioController = {
     }
   },
 
+  // editarUsuario: async (req, res) => {
+  //   const { id } = req.params;
+  //   const { nombre, tipo, estado } = req.body;
+  //   try {
+  //     const pool = await db;
+  //     await pool.request()
+  //       .input('id', sql.Int, id)
+  //       .input('nombre', sql.NVarChar, nombre)
+  //       .input('tipo', sql.NVarChar, tipo)
+  //       .input('estado', sql.Bit, estado)
+  //       .query(`
+  //         UPDATE Usuarios
+  //         SET nombre_usuario = @nombre,
+  //             tipo_usuario = @tipo,
+  //             estado = @estado
+  //         WHERE id_usuario = @id
+  //       `);
+  //     res.json({ message: 'Usuario actualizado correctamente' });
+  //   } catch (error) {
+  //     console.error('Error al editar usuario:', error);
+  //     res.status(500).json({ message: 'Error al actualizar usuario' });
+  //   }
+  // },
+
+
   editarUsuario: async (req, res) => {
     const { id } = req.params;
-    const { nombre, tipo, estado } = req.body;
+    const { nombre, tipo, estado, nuevaContrasena } = req.body;
+
     try {
+      // normaliza estado a bit (0/1)
+      const estadoBit = (estado === true || estado === 1 || estado === '1') ? 1 : 0;
+
+      // si viene nuevaContrasena, valida y hashea
+      let hashed = null;
+      if (typeof nuevaContrasena === 'string' && nuevaContrasena.length > 0) {
+        if (nuevaContrasena.length < 8) {
+          return res.status(400).json({ message: 'La nueva contraseña debe tener al menos 8 caracteres.' });
+        }
+        // (opcional) reglas extra: letras+numeros, etc.
+        // if (!/[A-Za-z]/.test(nuevaContrasena) || !/\d/.test(nuevaContrasena)) {
+        //   return res.status(400).json({ message: 'La contraseña debe incluir letras y números.' });
+        // }
+        hashed = await bcrypt.hash(nuevaContrasena, 10);
+      }
+
       const pool = await db;
+
       await pool.request()
         .input('id', sql.Int, id)
         .input('nombre', sql.NVarChar, nombre)
         .input('tipo', sql.NVarChar, tipo)
-        .input('estado', sql.Bit, estado)
+        .input('estado', sql.Bit, estadoBit)
+        .input('password', sql.NVarChar, hashed) // puede ser null si no cambia
         .query(`
-          UPDATE Usuarios
-          SET nombre_usuario = @nombre,
-              tipo_usuario = @tipo,
-              estado = @estado
-          WHERE id_usuario = @id
-        `);
-      res.json({ message: 'Usuario actualizado correctamente' });
+        UPDATE Usuarios
+        SET
+          nombre_usuario = @nombre,
+          tipo_usuario   = @tipo,
+          estado         = @estado,
+          password       = COALESCE(@password, password)
+        WHERE id_usuario = @id
+      `);
+
+      return res.json({ message: 'Usuario actualizado correctamente' });
     } catch (error) {
       console.error('Error al editar usuario:', error);
-      res.status(500).json({ message: 'Error al actualizar usuario' });
+      return res.status(500).json({ message: 'Error al actualizar usuario' });
     }
   },
-eliminarUsuario: async (req, res) => {
+
+
+  eliminarUsuario: async (req, res) => {
     const { id } = req.params;
     try {
       const pool = await db;

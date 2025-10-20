@@ -212,6 +212,70 @@
         }
 
 
+        // document.getElementById('formOferta').addEventListener('submit', async (e) => {
+        //     e.preventDefault();
+
+        //     // ✅ entero “seguro”
+        //     const monto = Math.trunc(Number(document.getElementById('monto').value));
+        //     const btn = document.getElementById('btnOfertar');
+        //     const spinner = document.getElementById('spinner');
+        //     const msg = document.getElementById('mensaje');
+
+        //     btn.disabled = true;
+        //     spinner.classList.remove('d-none');
+        //     msg.textContent = '';
+        //     msg.classList.remove('text-danger', 'text-success');
+
+        //     const minSiguiente = (ofertaMax > 0 ? ofertaMax : precioBase) + 1000;
+
+        //     if (!Number.isFinite(monto) || monto <= 0) {
+        //         msg.textContent = 'Monto inválido.';
+        //         msg.classList.add('text-danger');
+        //         btn.disabled = false; spinner.classList.add('d-none');
+        //         return;
+        //     }
+        //     if (monto % 1000 !== 0) {
+        //         msg.textContent = 'Las ofertas deben ser en múltiplos de $1.000.';
+        //         msg.classList.add('text-danger');
+        //         btn.disabled = false; spinner.classList.add('d-none');
+        //         return;
+        //     }
+        //     if (monto < minSiguiente) {
+        //         msg.textContent = `Debes ofertar al menos $${minSiguiente.toLocaleString()}.`;
+        //         msg.classList.add('text-danger');
+        //         btn.disabled = false; spinner.classList.add('d-none');
+        //         return;
+        //     }
+
+        //     try {
+        //         const res = await fetch(`/producto/${id}/ofertar`, {
+        //             method: 'POST',
+        //             headers: { 'Content-Type': 'application/json' },
+        //             body: JSON.stringify({ monto })
+        //         });
+        //         const result = await res.json();
+
+        //         if (res.ok) {
+        //             msg.textContent = 'Oferta registrada con éxito.';
+        //             msg.classList.add('text-success');
+        //             document.getElementById('monto').value = '';
+
+        //             // 🔄 refresca ofertaMax y mínimos del input
+        //             await cargarOfertaMaxima();
+        //         } else {
+        //             msg.textContent = result.message || 'Error al ofertar.';
+        //             msg.classList.add('text-danger');
+        //         }
+        //     } catch (error) {
+        //         console.error(error);
+        //         msg.textContent = 'Error al enviar oferta.';
+        //         msg.classList.add('text-danger');
+        //     } finally {
+        //         btn.disabled = false;
+        //         spinner.classList.add('d-none');
+        //     }
+        // });
+
         document.getElementById('formOferta').addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -247,6 +311,14 @@
                 return;
             }
 
+            // ⚠️ Confirmación antes de enviar
+            const confirmar = confirm(`¿Estás seguro de ofertar $${monto.toLocaleString('es-CL')} por este producto?`);
+            if (!confirmar) {
+                btn.disabled = false;
+                spinner.classList.add('d-none');
+                return;
+            }
+
             try {
                 const res = await fetch(`/producto/${id}/ofertar`, {
                     method: 'POST',
@@ -259,7 +331,6 @@
                     msg.textContent = 'Oferta registrada con éxito.';
                     msg.classList.add('text-success');
                     document.getElementById('monto').value = '';
-
                     // 🔄 refresca ofertaMax y mínimos del input
                     await cargarOfertaMaxima();
                 } else {
@@ -275,7 +346,6 @@
                 spinner.classList.add('d-none');
             }
         });
-
 
 
 
