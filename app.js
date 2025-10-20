@@ -1,4 +1,4 @@
-// 1) requires básicos
+// requires básicos
 const express = require('express');
 const session = require('express-session');
 const MSSQLStore = require('connect-mssql-v2');
@@ -15,6 +15,7 @@ const sql = require('mssql');
 const db = require('./db/sql');
 const { cerrarSubastaYNotificar } = require('./controllers/productoController');
 const { isAuthenticated, isAdmin } = require('./middlewares/authMiddleware');
+const productoController = require('./controllers/productoController');
 
 //Variables varias
 const port = process.env.PORT || 3000;    // 👈 define 'port' correctamente
@@ -30,6 +31,15 @@ app.use(session({
   saveUninitialized: true
 }));
 app.use(flash());
+
+// middleware de auth mínimo mis ofertas
+function ensureAuth(req, res, next) {
+  if (req.session?.user?.id) return next();
+  return res.status(401).json({ message: 'No autenticado' });
+}
+
+app.get('/usuario/mis-ofertas', ensureAuth, productoController.listarMisOfertas);
+
 
 //Rutas
 
@@ -64,6 +74,11 @@ app.use(flash());
 //Ofertas de Productos
 const { listarOfertasPorProducto } = require('./controllers/productoController');
 app.get('/producto/:id/ofertas', listarOfertasPorProducto);
+
+//Mis Ofertas
+app.get('/misOfertas.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'misOfertas.html'));
+});
 
 
 // Archivos públicos y vistas

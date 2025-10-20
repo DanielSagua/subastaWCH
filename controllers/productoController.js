@@ -168,8 +168,6 @@ async function cerrarSubastaYNotificar(pool, ctx, id_producto) {
 }
 
 
-
-
 const productoController = {
 
   listarActivos: async (req, res) => {
@@ -865,26 +863,6 @@ const productoController = {
   }
 };
 
-// dentro del objeto o asignado después:
-// async function listarOfertasPorProducto(req, res) {
-//   const { id } = req.params;
-//   try {
-//     const pool = await db;
-//     const rs = await pool.request()
-//       .input('id', sql.Int, id)
-//       .query(`
-//         SELECT o.id_oferta, o.id_usuario, u.nombre_usuario, o.monto_oferta, o.fecha_oferta
-//         FROM Ofertas o
-//         JOIN Usuarios u ON u.id_usuario = o.id_usuario
-//         WHERE o.id_producto = @id
-//         ORDER BY o.fecha_oferta DESC, o.monto_oferta DESC
-//       `);
-//     return res.json(rs.recordset);
-//   } catch (e) {
-//     console.error('Error al listar ofertas:', e);
-//     if (!res.headersSent) return res.status(500).json({ message: 'Error al listar ofertas' });
-//   }
-// }
 
 // === Historial de ofertas por producto (paginado, recientes primero) ===
 async function listarOfertasPorProducto(req, res) {
@@ -927,6 +905,41 @@ async function listarOfertasPorProducto(req, res) {
   }
 }
 
+// Ver mis ofertas
+const listarMisOfertas = async (req, res) => {
+  try {
+    const id_usuario = req.session.user?.id;
+    if (!id_usuario) return res.status(401).json({ message: 'No autenticado' });
+
+    const pool = await db;
+    const result = await pool.request()
+      .input('id_usuario', sql.Int, id_usuario)
+      .query(`
+        SELECT 
+          o.id_oferta,
+          o.monto_oferta,
+          o.fecha_oferta,
+          p.id_producto,
+          p.nombre_producto
+        FROM Ofertas o
+        JOIN Productos p ON p.id_producto = o.id_producto
+        WHERE o.id_usuario = @id_usuario
+        ORDER BY o.fecha_oferta DESC
+      `);
+
+    res.json(result.recordset);
+  } catch (err) {
+    console.error('Error al listar mis ofertas:', err);
+    res.status(500).json({ message: 'Error al obtener mis ofertas' });
+  }
+};
+
+// exporta:
+module.exports = {
+  ...productoController,
+  listarMisOfertas
+};
+
 
 
 
@@ -936,4 +949,5 @@ module.exports = {
   upload,
   cerrarSubastaYNotificar,
   listarOfertasPorProducto,
+  listarMisOfertas
 };

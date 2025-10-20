@@ -66,78 +66,42 @@
     </div>
 
     <script>
-        const sel = document.getElementById('selectProducto');
-        const btn = document.getElementById('btnVerOfertas');
-        const tbody = document.querySelector('#tablaOfertas tbody');
-        const info = document.getElementById('infoProducto');
-
-        async function cargarProductos() {
+        (async function cargarMisOfertas() {
+            const cont = document.getElementById('contenedorMisOfertas');
             try {
-                const res = await fetch('/productos');
-                const productos = await res.json();
-
-                sel.innerHTML = '<option value="">Seleccione...</option>';
-                productos.forEach(p => {
-                    const opt = document.createElement('option');
-                    opt.value = p.id_producto;
-                    opt.textContent = `${p.id_producto} — ${p.nombre_producto}`;
-                    sel.appendChild(opt);
-                });
-
-                sel.addEventListener('change', () => {
-                    btn.disabled = !sel.value;
-                    info.textContent = '';
-                    tbody.innerHTML = '<tr><td colspan="3" class="text-muted">Presiona "Ver ofertas"…</td></tr>';
-                });
-
-            } catch (e) {
-                console.error(e);
-                sel.innerHTML = '<option value="">Error al cargar productos</option>';
-            }
-        }
-
-        async function cargarOfertas(id) {
-            try {
-                // Info del producto (nombre y precio)
-                const resProds = await fetch('/productos');
-                const productos = await resProds.json();
-                const prod = productos.find(p => String(p.id_producto) === String(id));
-                if (prod) {
-                    info.textContent = `Producto: ${prod.nombre_producto} — Precio base: $${Number(prod.precio_producto).toLocaleString('es-CL')}`;
-                } else {
-                    info.textContent = '';
+                const res = await fetch('/usuario/mis-ofertas');
+                if (res.status === 401) {
+                    cont.innerHTML = `<div class="alert alert-warning">Debes iniciar sesión para ver tus ofertas.</div>`;
+                    return;
                 }
-
-                // Ofertas
-                const res = await fetch(`/producto/${id}/ofertas`);
                 const ofertas = await res.json();
-                tbody.innerHTML = '';
 
-                if (!ofertas.length) {
-                    tbody.innerHTML = '<tr><td colspan="3" class="text-muted">Sin ofertas aún</td></tr>';
+                if (!Array.isArray(ofertas) || ofertas.length === 0) {
+                    cont.innerHTML = `<div class="alert alert-info">Aún no has realizado ofertas.</div>`;
                     return;
                 }
 
-                for (const o of ofertas) {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-            <td>${o.nombre_usuario}</td>
-            <td class="text-end">$${Number(o.monto_oferta).toLocaleString('es-CL')}</td>
-            <td>${new Date(o.fecha_oferta).toLocaleString('es-CL')}</td>`;
-                    tbody.appendChild(tr);
-                }
+                cont.innerHTML = ofertas.map(o => `
+      <div class="card shadow-sm mb-3">
+        <div class="card-body d-flex justify-content-between align-items-center">
+          <div>
+            <div class="fw-bold">${o.nombre_producto}</div>
+            <div class="text-muted small">Realizada el ${new Date(o.fecha_oferta).toLocaleString('es-CL')}</div>
+          </div>
+          <div class="text-end">
+            <div class="fw-bold">$${Number(o.monto_oferta).toLocaleString('es-CL')}</div>
+            <a class="btn btn-sm btn-outline-primary mt-2" href="/producto.html?id=${o.id_producto}">Ver producto</a>
+          </div>
+        </div>
+      </div>
+    `).join('');
             } catch (e) {
                 console.error(e);
-                tbody.innerHTML = '<tr><td colspan="3" class="text-danger">Error al cargar ofertas</td></tr>';
+                cont.innerHTML = `<div class="alert alert-danger">Error al cargar tus ofertas.</div>`;
             }
-        }
-
-        btn.addEventListener('click', () => {
-            if (sel.value) cargarOfertas(sel.value);
-        });
-
-        cargarProductos();
+        })();
     </script>
+
 </body>
 
 </html>
