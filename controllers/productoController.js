@@ -20,13 +20,36 @@ const {
   tplSubastaFinalizadaAdmin
 } = require('../emails/builders');
 
+// const transporter = nodemailer.createTransport({
+//   service: 'gmail',
+//   auth: {
+//     user: process.env.EMAIL_USER,
+//     pass: process.env.EMAIL_PASS
+//   }
+// });
+
+// Remitente y SMTP desde .env (hosting)
+const FROM = process.env.EMAIL_FROM || `"Subastas WCH" <${process.env.SMTP_USER}>`;
+
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: process.env.SMTP_HOST,
+  port: parseInt(process.env.SMTP_PORT || '465', 10),
+  secure: String(process.env.SMTP_SECURE).toLowerCase() === 'true', // true=465, false=587
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS
   }
 });
+
+
+transporter.verify((err, ok) => {
+  if (err) {
+    console.error('[SMTP] Verificación falló:', err.message);
+  } else {
+    console.log('[SMTP] Conexión OK y listo para enviar.');
+  }
+});
+
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -90,7 +113,7 @@ async function cerrarSubastaYNotificar(pool, ctx, id_producto) {
         urlProducto
       });
       await transporter.sendMail({
-        from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
+        from: FROM,
         to: u.recordset[0].correo,
         subject,
         html
@@ -114,7 +137,7 @@ async function cerrarSubastaYNotificar(pool, ctx, id_producto) {
         urlProducto
       });
       await transporter.sendMail({
-        from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
+        from: FROM,
         to: usuario.correo,
         subject,
         html
@@ -136,7 +159,7 @@ async function cerrarSubastaYNotificar(pool, ctx, id_producto) {
     });
 
     await transporter.sendMail({
-      from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
+      from: FROM,
       to: 'danielsagua.n@gmail.com',
       subject,
       html
@@ -321,9 +344,74 @@ const productoController = {
   //   }
   // },
 
+  // crearProducto: async (req, res) => {
+  //   const { nombre, descripcion, precio } = req.body;
+
+  //   const archivos = req.files || [];
+  //   const imagenes = archivos.map(f => f.filename);
+
+  //   const imagen = imagenes[0] || 'test.webp';
+  //   const imagen1 = imagenes[1] || null;
+  //   const imagen2 = imagenes[2] || null;
+  //   const imagen3 = imagenes[3] || null;
+  //   const imagen4 = imagenes[4] || null;
+
+  //   try {
+  //     const pool = await db;
+  //     const insertResult = await pool.request()
+  //       .input('nombre', sql.NVarChar, nombre)
+  //       .input('descripcion', sql.NVarChar, descripcion)
+  //       .input('precio', sql.Decimal(10, 2), precio)
+  //       .input('imagen', sql.NVarChar, imagen)
+  //       .input('imagen1', sql.NVarChar, imagen1)
+  //       .input('imagen2', sql.NVarChar, imagen2)
+  //       .input('imagen3', sql.NVarChar, imagen3)
+  //       .input('imagen4', sql.NVarChar, imagen4)
+  //       .input('imagen_destacada', sql.NVarChar, req.body.imagen_destacada || imagen)
+  //       .query(`
+  //         INSERT INTO Productos (nombre_producto, descripcion_producto, precio_producto, imagen, imagen1, imagen2, imagen3, imagen4, imagen_destacada)
+  //         VALUES (@nombre, @descripcion, @precio, @imagen, @imagen1, @imagen2, @imagen3, @imagen4, @imagen_destacada);
+  //         SELECT SCOPE_IDENTITY() AS id_producto;
+  //       `);
+
+  //     const idProducto = insertResult.recordset?.[0]?.id_producto || insertResult.recordset?.[0]?.ID || null;
+
+  //     if (process.env.AVISO_PRODUCTO_NUEVO === 'true') {
+  //       const usuariosResult = await pool.request().query(`
+  //         SELECT correo, nombre_usuario FROM Usuarios WHERE estado = 1
+  //       `);
+
+  //       const baseUrl = `${req.protocol}://${req.get('host')}`;
+  //       const urlProducto = `${baseUrl}/producto.html?id=${idProducto}`;
+  //       const nombreProducto = nombre;
+
+  //       for (const usuario of usuariosResult.recordset) {
+  //         if (ENVIAR_CORREOS) {
+  //           const { subject, html } = tplNuevoProducto({
+  //             nombreUsuario: usuario.nombre_usuario,
+  //             nombreProducto,
+  //             urlProducto
+  //           });
+
+  //           await transporter.sendMail({
+  //             from: FROM,
+  //             to: usuario.correo,
+  //             subject,
+  //             html
+  //           });
+  //         }
+  //       }
+  //     }
+
+  //     res.json({ message: 'Producto creado correctamente' });
+  //   } catch (error) {
+  //     console.error('Error al crear producto:', error);
+  //     res.status(500).json({ message: 'Error al crear producto' });
+  //   }
+  // },
+
   crearProducto: async (req, res) => {
     const { nombre, descripcion, precio } = req.body;
-
     const archivos = req.files || [];
     const imagenes = archivos.map(f => f.filename);
 
@@ -335,6 +423,8 @@ const productoController = {
 
     try {
       const pool = await db;
+
+      // 1) Insertar producto
       const insertResult = await pool.request()
         .input('nombre', sql.NVarChar, nombre)
         .input('descripcion', sql.NVarChar, descripcion)
@@ -346,24 +436,33 @@ const productoController = {
         .input('imagen4', sql.NVarChar, imagen4)
         .input('imagen_destacada', sql.NVarChar, req.body.imagen_destacada || imagen)
         .query(`
-          INSERT INTO Productos (nombre_producto, descripcion_producto, precio_producto, imagen, imagen1, imagen2, imagen3, imagen4, imagen_destacada)
-          VALUES (@nombre, @descripcion, @precio, @imagen, @imagen1, @imagen2, @imagen3, @imagen4, @imagen_destacada);
-          SELECT SCOPE_IDENTITY() AS id_producto;
+        INSERT INTO Productos (nombre_producto, descripcion_producto, precio_producto, imagen, imagen1, imagen2, imagen3, imagen4, imagen_destacada)
+        VALUES (@nombre, @descripcion, @precio, @imagen, @imagen1, @imagen2, @imagen3, @imagen4, @imagen_destacada);
+        SELECT SCOPE_IDENTITY() AS id_producto;
+      `);
+
+      const idProducto =
+        insertResult.recordset?.[0]?.id_producto ??
+        insertResult.recordset?.[0]?.ID ??
+        Number(insertResult.recordset?.[0]?.['']) ?? null;
+
+      // 2) Responder al cliente primero (éxito)
+      res.json({ success: true, message: 'Producto creado correctamente', id_producto: idProducto });
+
+      // 3) Enviar correos (no bloquear respuesta)
+      if (process.env.AVISO_PRODUCTO_NUEVO === 'true' && ENVIAR_CORREOS) {
+        try {
+          const usuariosResult = await pool.request().query(`
+          SELECT correo, nombre_usuario
+          FROM Usuarios
+          WHERE estado = 1
         `);
 
-      const idProducto = insertResult.recordset?.[0]?.id_producto || insertResult.recordset?.[0]?.ID || null;
+          const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+          const urlProducto = `${baseUrl}/producto.html?id=${idProducto}`;
+          const nombreProducto = nombre;
 
-      if (process.env.AVISO_PRODUCTO_NUEVO === 'true') {
-        const usuariosResult = await pool.request().query(`
-          SELECT correo, nombre_usuario FROM Usuarios WHERE estado = 1
-        `);
-
-        const baseUrl = `${req.protocol}://${req.get('host')}`;
-        const urlProducto = `${baseUrl}/producto.html?id=${idProducto}`;
-        const nombreProducto = nombre;
-
-        for (const usuario of usuariosResult.recordset) {
-          if (ENVIAR_CORREOS) {
+          for (const usuario of usuariosResult.recordset) {
             const { subject, html } = tplNuevoProducto({
               nombreUsuario: usuario.nombre_usuario,
               nombreProducto,
@@ -371,21 +470,25 @@ const productoController = {
             });
 
             await transporter.sendMail({
-              from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
+              from: FROM, // ⬅️ usa tu remitente del hosting
               to: usuario.correo,
               subject,
               html
             });
           }
+        } catch (mailErr) {
+          console.error('[correo][NuevoProducto] Falló el envío masivo:', mailErr);
+          // No hacemos nada más: ya respondimos OK al cliente.
         }
       }
-
-      res.json({ message: 'Producto creado correctamente' });
     } catch (error) {
       console.error('Error al crear producto:', error);
-      res.status(500).json({ message: 'Error al crear producto' });
+      if (!res.headersSent) {
+        res.status(500).json({ message: 'Error al crear producto' });
+      }
     }
   },
+
 
   editarProducto: async (req, res) => {
     const { id } = req.params;
@@ -465,7 +568,7 @@ const productoController = {
             nombreProducto: result.recordset[0].nombre_producto
           });
           await transporter.sendMail({
-            from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
+            from: FROM,
             to: usuario.correo,
             subject,
             html
@@ -615,7 +718,7 @@ const productoController = {
         });
 
         await transporter.sendMail({
-          from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
+          from: FROM,
           to: usuario.correo,
           subject,
           html
@@ -636,7 +739,7 @@ const productoController = {
           });
 
           await transporter.sendMail({
-            from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
+            from: FROM,
             to: anteriorUsuario.correo,
             subject,
             html
@@ -699,7 +802,7 @@ const productoController = {
             urlProducto
           });
           await transporter.sendMail({
-            from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
+            from: FROM,
             to: usuario.recordset[0].correo,
             subject,
             html
@@ -724,7 +827,7 @@ const productoController = {
             urlProducto
           });
           await transporter.sendMail({
-            from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
+            from: FROM,
             to: usuario.correo,
             subject,
             html
@@ -746,7 +849,7 @@ const productoController = {
           nombreGanador
         });
         await transporter.sendMail({
-          from: `"Subastas Internas" <${process.env.EMAIL_USER}>`,
+          from: FROM,
           to: 'danielsagua.n@gmail.com',
           subject,
           html

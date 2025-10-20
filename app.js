@@ -1,21 +1,25 @@
+// 1) requires básicos
 const express = require('express');
 const session = require('express-session');
+const MSSQLStore = require('connect-mssql-v2');
 const flash = require('connect-flash');
 const bodyParser = require('body-parser');
 const path = require('path');
 require('dotenv').config();
+
+//Crar app antes de ser utilizada
+const app = express();
+
+//requires que no necesitan app
 const sql = require('mssql');
 const db = require('./db/sql');
 const { cerrarSubastaYNotificar } = require('./controllers/productoController');
-
-const DURACION_MIN = parseInt(process.env.SUBASTA_DURACION_MINUTOS || '2880', 10);
-const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
-
-
 const { isAuthenticated, isAdmin } = require('./middlewares/authMiddleware');
 
-const app = express();
-
+//Variables varias
+const port = process.env.PORT || 3000;    // 👈 define 'port' correctamente
+const DURACION_MIN = parseInt(process.env.SUBASTA_DURACION_MINUTOS || '2880', 10);
+const BASE_URL = process.env.BASE_URL || 'https://subastaswch.wch-ops.cl';
 // Middlewares
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
@@ -27,10 +31,39 @@ app.use(session({
 }));
 app.use(flash());
 
-//Ofertas de productos
+//Rutas
+
+//TCP TEST
+// const net = require('net');
+// app.get('/tcp-test', (req, res) => {
+//   const host = process.env.DB_SERVER;
+//   const port = parseInt(process.env.DB_PORT || '1433', 10);
+//   const socket = new net.Socket();
+//   const timeoutMs = 4000;
+
+//   socket.setTimeout(timeoutMs);
+//   socket.once('connect', () => { socket.destroy(); res.json({ ok: true, host, port }); });
+//   socket.once('timeout', () => { socket.destroy(); res.status(504).json({ ok: false, error: 'timeout', host, port }); });
+//   socket.once('error', (err) => { socket.destroy(); res.status(500).json({ ok: false, error: String(err), host, port }); });
+
+//   socket.connect(port, host);
+// });
+
+//Test
+// app.get('/db-test', async (_req, res) => {
+//   try {
+//     const pool = await db;
+//     const result = await pool.request().query('SELECT TOP 1 GETDATE() as ahora');
+//     res.json({ ok: true, ahora: result.recordset[0].ahora });
+//   } catch (e) {
+//     console.error('DB test error:', e);
+//     res.status(500).json({ ok: false, error: String(e) });
+//   }
+// });
+
+//Ofertas de Productos
 const { listarOfertasPorProducto } = require('./controllers/productoController');
 app.get('/producto/:id/ofertas', listarOfertasPorProducto);
-
 
 
 // Archivos públicos y vistas
@@ -104,9 +137,6 @@ app.use('/', productoRoutes);
 
 
 
-// Ruta base
-app.get('/', (req, res) => res.redirect('/login.html'));
-
 async function cerrarExpiradasJob() {
   try {
     const pool = await db;
@@ -120,16 +150,6 @@ async function cerrarExpiradasJob() {
 
 
 
-    // 09102025
-    // const vencidas = await pool.request()
-    //   .input('duracion', sql.Int, DURACION_MIN)
-    //   .query(`
-    //     SELECT id_producto
-    //     FROM Productos
-    //     WHERE finalizada = 0
-    //       AND DATEADD(MINUTE, @duracion, fecha_publicacion_producto) <= GETDATE()
-    //   `);
-
     for (const row of vencidas.recordset) {
       await cerrarSubastaYNotificar(pool, BASE_URL, row.id_producto);
     }
@@ -142,12 +162,19 @@ async function cerrarExpiradasJob() {
   }
 }
 
-// Ejecuta al iniciar
-cerrarExpiradasJob();
-// Y cada 60 segundos
-setInterval(cerrarExpiradasJob, 60 * 1000);
+// app.get('/', (_req, res) => {
+//   res.send('<h1>Bienvenido a SubastasWCH</h1><p>Servidor Node.js activo en subastaswch.wch-ops.cl</p>');
+// });
 
+// Ruta principal:
+app.get('/', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'login.html'));
+});
 
-// Iniciar servidor
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Servidor corriendo en http://localhost:${PORT}`));
+// Ruta de prueba
+app.get('/status', (_req, res) => res.send('OK'));
+
+// Arranque
+app.listen(port, () => {
+  console.log(`Servidor corriendo en puerto ${port}`);
+});
