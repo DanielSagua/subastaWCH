@@ -48,9 +48,68 @@
     </div>
   </footer>
 
+  <script>
+    // Confirmación de logout (funciona con URLs absolutas o relativas)
+    function esLogoutLink(a) {
+      try {
+        const u = new URL(a.getAttribute('href'), location.href);
+        return u.pathname === '/logout';
+      } catch { return false; }
+    }
+
+    document.addEventListener('click', (e) => {
+      const a = e.target.closest('a');
+      if (!a || !esLogoutLink(a)) return;
+      e.preventDefault();
+      if (confirm('¿Seguro que deseas cerrar sesión?')) {
+        // respeta href exacto (por si es absoluto)
+        location.href = a.href;
+      }
+    });
+  </script>
 
 
   <script>
+
+    let _countdownTimer = null;
+    const _deadlines = new Map();
+
+    function _formatTTL(ms) {
+      if (ms <= 0) return 'Finalizado';
+      const totalSec = Math.floor(ms / 1000);
+      const d = Math.floor(totalSec / 86400);
+      const h = Math.floor((totalSec % 86400) / 3600);
+      const m = Math.floor((totalSec % 3600) / 60);
+      const s = totalSec % 60;
+      const hh = String(h).padStart(2, '0');
+      const mm = String(m).padStart(2, '0');
+      const ss = String(s).padStart(2, '0');
+      return d > 0 ? `${d}d ${hh}:${mm}:${ss}` : `${hh}:${mm}:${ss}`;
+    }
+
+    function _tickCountdowns() {
+      const now = Date.now();
+      for (const [id, deadline] of _deadlines.entries()) {
+        const el = document.getElementById(`ttl-${id}`);
+        if (!el) continue;
+        const rem = deadline - now;
+        el.textContent = _formatTTL(rem);
+        if (rem <= 0) {
+          // opcional: marcar visualmente
+          el.classList.remove('text-danger');
+          el.classList.add('text-muted');
+        }
+      }
+    }
+
+    function _startCountdownLoop() {
+      if (_countdownTimer) clearInterval(_countdownTimer);
+      if (_deadlines.size === 0) return;
+      _tickCountdowns(); // pinta de inmediato
+      _countdownTimer = setInterval(_tickCountdowns, 1000);
+    }
+
+
     async function cargarProductos() {
       try {
         const res = await fetch('/productos/activos');
@@ -62,6 +121,11 @@
 
         const contenedor = document.getElementById('contenedorProductos');
         contenedor.innerHTML = '';
+
+        // limpiar deadlines previos
+        _deadlines.clear();
+        if (_countdownTimer) { clearInterval(_countdownTimer); _countdownTimer = null; }
+
 
         // ✅ Si no hay productos activos, muestra mensaje
         if (productos.length === 0) {
@@ -103,12 +167,31 @@
               : 'Nadie ha ofertado aún'
             }</p>
 
+            <p><strong>Termina en:</strong> <span class="text-danger fw-semibold" id="ttl-${p.id_producto}">--:--:--</span></p>
+
             <a href="/producto.html?id=${p.id_producto}" class="btn btn-sm btn-outline-primary">Ver más</a>
           </div>
         </div>
       `;
 
           contenedor.appendChild(card);
+
+          // Registrar deadline (preferimos remaining_seconds del backend)
+          let deadlineMs;
+          if (typeof p.remaining_seconds === 'number') {
+            deadlineMs = Date.now() + Math.max(0, p.remaining_seconds) * 1000;
+          } else if (p.fecha_fin) {
+            deadlineMs = new Date(p.fecha_fin).getTime();
+          } else if (typeof p.duracion_min === 'number' && p.fecha_publicacion_producto) {
+            deadlineMs = new Date(p.fecha_publicacion_producto).getTime() + p.duracion_min * 60 * 1000;
+          } else {
+            // Fallback 48h (no debería pasar si vienes usando listarActivos mejorado)
+            deadlineMs = new Date(p.fecha_publicacion_producto).getTime() + 48 * 60 * 60 * 1000;
+          }
+          _deadlines.set(p.id_producto, deadlineMs);
+
+          _startCountdownLoop();
+
         });
       } catch (error) {
         console.error(error);
@@ -158,6 +241,8 @@
 
 
     mostrarBotonAdmin();
+
+
 
   </script>
 </body>

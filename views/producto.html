@@ -26,6 +26,12 @@
     <main class="container py-5">
         <a href="/home.html" class="btn btn-primary mb-3">&larr; Volver a Productos disponibles</a>
 
+        <div class="d-flex justify-content-between mb-3">
+            <button id="btnPrev" class="btn btn-outline-primary">&larr; Anterior producto</button>
+            <button id="btnNext" class="btn btn-outline-primary">Siguiente producto &rarr;</button>
+        </div>
+
+
         <div class="card shadow2">
             <div class="card-body text-center">
                 <h3 id="nombre" class="card-title texto-azul-primario"></h3>
@@ -83,6 +89,39 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal Zoom con carrusel -->
+    <div class="modal fade" id="modalZoom" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content bg-dark">
+                <div class="modal-body p-0 position-relative">
+                    <div id="carouselZoom" class="carousel slide" data-bs-interval="false">
+                        <div class="carousel-inner" id="zoomInner"></div>
+
+                        <!-- Controles -->
+                        <button class="carousel-control-prev" type="button" data-bs-target="#carouselZoom"
+                            data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Anterior</span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#carouselZoom"
+                            data-bs-slide="next">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Siguiente</span>
+                        </button>
+                    </div>
+
+                    <!-- Cerrar -->
+                    <button type="button" class="btn btn-sm btn-light position-absolute top-0 end-0 m-2"
+                        data-bs-dismiss="modal">
+                        Cerrar ✕
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
     <!-- FOOTER -->
     <footer class="bg-dark text-white text-center py-1 mt-5">
         <div class="container">
@@ -135,6 +174,39 @@
     </div>
   `;
                 });
+                // Después de llenar #contenedorCarrusel, llena también el carrusel del modal:
+                const zoomInner = document.getElementById('zoomInner');
+                zoomInner.innerHTML = '';
+                imagenes.forEach((img, i) => {
+                    zoomInner.innerHTML += `
+    <div class="carousel-item ${i === 0 ? 'active' : ''}">
+      <div class="d-flex justify-content-center align-items-center" style="min-height:70vh;background:#000;">
+        <img src="/uploads/${img}" class="img-fluid" style="max-height:80vh; object-fit:contain;" alt="Imagen ${i + 1}">
+      </div>
+    </div>
+  `;
+                });
+
+                // Abrir modal en el índice clickeado
+                document.addEventListener('click', (e) => {
+                    const target = e.target.closest('.imagen-ampliable');
+                    if (!target) return;
+
+                    // índice según posición en el carrusel principal
+                    const items = Array.from(document.querySelectorAll('#contenedorCarrusel .carousel-item img.imagen-ampliable'));
+                    const idx = Math.max(0, items.indexOf(target));
+
+                    const modalEl = document.getElementById('modalZoom');
+                    const modal = new bootstrap.Modal(modalEl);
+                    modal.show();
+
+                    // Mover el carrusel del modal a ese índice
+                    const zoomCarouselEl = document.getElementById('carouselZoom');
+                    const zoomCarousel = bootstrap.Carousel.getOrCreateInstance(zoomCarouselEl, { interval: false, ride: false, wrap: true });
+                    zoomCarousel.to(idx);
+                });
+
+
 
                 // Calcular hora de finalización (fecha_publicacion + 24 horas)
                 // ✅ Usa fecha_fin o duracion_min del backend (alineado a SUBASTA_DURACION_MINUTOS)
@@ -430,6 +502,117 @@
             mensaje.classList.remove('text-success');
             mensaje.classList.add('text-danger');
         }
+
+        // ===== Controles siguiente / anterior =====
+        // async function moverProducto(direccion) {
+        //     try {
+        //         const res = await fetch('/productos/activos');
+        //         const productos = await res.json();
+        //         const idxActual = productos.findIndex(p => String(p.id_producto) === String(id));
+
+        //         if (idxActual === -1) return alert('Producto no encontrado.');
+        //         const nuevoIdx = direccion === 'next' ? idxActual + 1 : idxActual - 1;
+
+        //         if (nuevoIdx < 0 || nuevoIdx >= productos.length) {
+        //             alert('No hay más productos en esa dirección.');
+        //             return;
+        //         }
+
+        //         const nuevoId = productos[nuevoIdx].id_producto;
+        //         window.location.href = `/producto.html?id=${nuevoId}`;
+        //     } catch (err) {
+        //         console.error('Error al cambiar producto:', err);
+        //     }
+        // }
+
+
+        // ===== Navegación entre productos (oculta botones en bordes) =====
+        let _productosActivos = [];
+        let _idxActual = -1;
+
+        async function prepararNavegacionProductos() {
+            try {
+                const res = await fetch('/productos/activos');
+                _productosActivos = await res.json();
+
+                _idxActual = _productosActivos.findIndex(p => String(p.id_producto) === String(id));
+                actualizarVisibilidadBotones();
+            } catch (err) {
+                console.error('Error cargando productos activos:', err);
+                // Si falla, ocultamos ambos por seguridad
+                ocultarAmbosBotones();
+            }
+        }
+
+        function actualizarVisibilidadBotones() {
+            const btnPrev = document.getElementById('btnPrev');
+            const btnNext = document.getElementById('btnNext');
+
+            if (!btnPrev || !btnNext || _idxActual === -1 || _productosActivos.length === 0) {
+                ocultarAmbosBotones();
+                return;
+            }
+
+            // Mostrar/ocultar según existan vecinos
+            const hayPrev = _idxActual > 0;
+            const hayNext = _idxActual < _productosActivos.length - 1;
+
+            btnPrev.style.display = hayPrev ? '' : 'none';
+            btnNext.style.display = hayNext ? '' : 'none';
+        }
+
+        function ocultarAmbosBotones() {
+            const btnPrev = document.getElementById('btnPrev');
+            const btnNext = document.getElementById('btnNext');
+            if (btnPrev) btnPrev.style.display = 'none';
+            if (btnNext) btnNext.style.display = 'none';
+        }
+
+        function irAProducto(direccion) {
+            if (_idxActual === -1) return;
+
+            const nuevoIdx = direccion === 'next' ? _idxActual + 1 : _idxActual - 1;
+
+            // Si no existe producto en esa dirección, ocultamos el botón correspondiente y salimos
+            if (nuevoIdx < 0) {
+                const btnPrev = document.getElementById('btnPrev');
+                if (btnPrev) btnPrev.style.display = 'none';
+                return;
+            }
+            if (nuevoIdx >= _productosActivos.length) {
+                const btnNext = document.getElementById('btnNext');
+                if (btnNext) btnNext.style.display = 'none';
+                return;
+            }
+
+            const nuevoId = _productosActivos[nuevoIdx].id_producto;
+            // Navega
+            window.location.href = `/producto.html?id=${nuevoId}`;
+        }
+
+        // Listeners
+        document.getElementById('btnPrev')?.addEventListener('click', () => irAProducto('prev'));
+        document.getElementById('btnNext')?.addEventListener('click', () => irAProducto('next'));
+
+        // Llamar una vez cuando cargue la página (después de tener "id")
+        prepararNavegacionProductos();
+
+
+        document.getElementById('btnNext').addEventListener('click', () => moverProducto('next'));
+        document.getElementById('btnPrev').addEventListener('click', () => moverProducto('prev'));
+
+        // ===== Confirmar antes de cerrar sesión =====
+        document.addEventListener('click', (e) => {
+            const link = e.target.closest('a[href="/logout"]');
+            if (!link) return;
+
+            e.preventDefault();
+            const confirmar = confirm('¿Seguro que deseas cerrar sesión?');
+            if (confirmar) {
+                window.location.href = '/logout';
+            }
+        });
+
 
     </script>
 </body>
