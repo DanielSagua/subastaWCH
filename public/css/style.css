@@ -153,6 +153,8 @@ main {
   border-color: var(--azul-claro) !important;
 }
 
+
+
 /* Link de recuperar contraseña */
 a[href*="recuperar-password"] {
   color: var(--azul-primario) !important;
@@ -178,3 +180,6 @@ a[href*="recuperar-password"]:hover {
   color: #fff !important;
   border-color: var(--azul-primario) !important;
 }
+
+
+button[disabled] { opacity: .1; pointer-events: none; }
